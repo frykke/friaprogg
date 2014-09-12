@@ -1,0 +1,14 @@
+<div class='row'>
+<div class='one whole'>
+<nav role="navigation" class="nav nocollapse black">
+  <ul role="menubar">
+    {{#each MenuItem}}
+        <li {{#if itemSelected}} class='selected-menu-item'{{/if}}><a class="noicon" href="#{{url}}">{{text}}</a></li>
+    {{/each}}
+  </li>
+</ul>
+</nav>
+</div>
+</div>
+
+
