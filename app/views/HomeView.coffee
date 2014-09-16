@@ -41,7 +41,9 @@ module.exports = class HomeView extends View
 	#
 	render: ->
 		@$el.html( @template( @getRenderData() ) )
-		@$el.append((new CitatView()).render().el)
+		console.log @el
+		citatView = new CitatView()
+		@$el.append(citatView.el)
 		return @
 
 	#

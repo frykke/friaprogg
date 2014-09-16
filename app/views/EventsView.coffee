@@ -5,12 +5,13 @@
  * 
  * @author 
  * @since  
- ###
+###
 
 View = require('./supers/View')
+EventsModel = require('../models/EventsModel')
 template = require('./templates/ShowsTemplate')
-CitatView = require('./CitatView')
-module.exports = class ShowsView extends View
+
+module.exports = class EventsView extends View
 
 	###//--------------------------------------
 	//+ PUBLIC PROPERTIES / CONSTANTS
@@ -34,21 +35,29 @@ module.exports = class ShowsView extends View
 	#
 	initialize: ->
 		@render = _.bind( @render, @ )
+		@shows = new EventsModel()
+		@shows.on('all', @newData);
 
 	#
    	# @private
 	#
 	render: ->
 		@$el.html( @template( @getRenderData() ) )
+
 		return @
 
+	newData: (event) ->
+		#console.log 'new Data'
+		#console.log @shows
+		#@render
+		console.log 'Got event'
+		console.log event
 	#
    	# @private
 	#
 	getRenderData: ->
-		return {
-			content: "Nyheter...."
-		}
+		console.log @shows.toJSON()
+		return @shows.toJSON()
 
 	###//--------------------------------------
 	//+ PUBLIC METHODS / GETTERS / SETTERS

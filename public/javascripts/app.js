@@ -115,6 +115,7 @@ Application = {
   //+ PUBLIC PROPERTIES / CONSTANTS
   //--------------------------------------
    */
+  docUrl: 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/pubhtml',
 
   /*//--------------------------------------
   //+ INHERITED / OVERRIDES
@@ -224,7 +225,7 @@ Handlebars.registerHelper('link', function(text, url) {
  * @author 
  * @since
  */
-var application;
+var application, _compareHelper;
 
 application = require('Application');
 
@@ -232,10 +233,79 @@ $(function() {
   application.initialize();
   return Backbone.history.start();
 });
+
+_compareHelper = function(lvalue, operator, rvalue, options) {
+  var operators, result;
+  if (arguments.length < 3) {
+    throw new Error("Handlerbars Helper 'compare' needs 2 parameters");
+  }
+  if (options === void 0) {
+    options = rvalue;
+    rvalue = operator;
+    operator = "==";
+  }
+  operators = {
+    '==': (function(_this) {
+      return function(l, r) {
+        return l === r;
+      };
+    })(this),
+    '!=': (function(_this) {
+      return function(l, r) {
+        return l !== r;
+      };
+    })(this),
+    '<': (function(_this) {
+      return function(l, r) {
+        return l < r;
+      };
+    })(this),
+    '>': (function(_this) {
+      return function(l, r) {
+        return l > r;
+      };
+    })(this),
+    '<=': (function(_this) {
+      return function(l, r) {
+        return l <= r;
+      };
+    })(this),
+    '>=': (function(_this) {
+      return function(l, r) {
+        return l >= r;
+      };
+    })(this),
+    'typeof': (function(_this) {
+      return function(l, r) {
+        return typeof l === r;
+      };
+    })(this)
+  };
+  if (!operators[operator]) {
+    throw new Error("Handlerbars Helper 'compare' doesn't know the operator " + operator);
+  }
+  result = operators[operator](lvalue, rvalue);
+  if (result) {
+    return options.fn(this);
+  } else {
+    return options.inverse(this);
+  }
+};
+
+console.log('Handlebars');
+
+console.log(Handlebars);
+
+console.log(_compareHelper);
+
+Handlebars.registerHelper('compare', _compareHelper);
+
+console.log(Handlebars);
 });
 
 ;require.register("models/CitatModel", function(exports, require, module) {
 var CitatModel, Model,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -245,35 +315,25 @@ module.exports = CitatModel = (function(_super) {
   __extends(CitatModel, _super);
 
   function CitatModel() {
+    this.initialize = __bind(this.initialize, this);
+    this.success = __bind(this.success, this);
     return CitatModel.__super__.constructor.apply(this, arguments);
   }
 
-  CitatModel.prototype.defaults = {
-    quotes: [
-      {
-        quote: 'friska typer i övre medelåldern'
-      }, {
-        quote: 'vår andra pubertet'
-      }, {
-        quote: 'alla vill va helvilda litegrann'
-      }, {
-        quote: 'borde vi klä oss i läder'
-      }, {
-        quote: 'då vet ni hur brudarna e mot oss'
-      }, {
-        quote: 'poet, kock, flyttkarl, Mohammat Kadaffi'
-      }, {
-        quote: 'stanna här, var alltid som du är'
-      }, {
-        quote: 'vackra tjejer rika killar'
-      }, {
-        quote: 'jag önska jag kom hem, alla mådde bra'
-      }, {
-        quote: 'man är fem mil utanför'
-      }, {
-        quote: 'ingen stämsång, inget perverterat samförstånd'
-      }
-    ]
+  CitatModel.prototype.docUrl = 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/pubhtml';
+
+  CitatModel.prototype.success = function(data, tabletop) {
+    return this.set({
+      "quotes": tabletop.sheets('quotes').elements
+    });
+  };
+
+  CitatModel.prototype.initialize = function() {
+    return Tabletop.init({
+      key: this.docUrl,
+      callback: this.success,
+      simpleSheet: false
+    });
   };
 
   return CitatModel;
@@ -282,6 +342,49 @@ module.exports = CitatModel = (function(_super) {
 });
 
 ;require.register("models/DocModel", function(exports, require, module) {
+var DocModel, Model,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+Model = require('./supers/Model');
+
+module.exports = DocModel = (function(_super) {
+  __extends(DocModel, _super);
+
+  function DocModel() {
+    this.initialize = __bind(this.initialize, this);
+    this.success = __bind(this.success, this);
+    return DocModel.__super__.constructor.apply(this, arguments);
+  }
+
+  DocModel.prototype.docUrl = 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/pubhtml';
+
+  DocModel.prototype.success = function(data, tabletop) {
+    console.log('got it');
+    console.log(data);
+    return this.set({
+      "content": "Kommande spelningar....",
+      "shows": data
+    });
+  };
+
+  DocModel.prototype.initialize = function() {
+    return Tabletop.init({
+      key: this.docUrl,
+      callback: this.success,
+      simpleSheet: true
+    });
+  };
+
+  DocModel.prototype.idAttribute = 'name';
+
+  return DocModel;
+
+})(Model);
+});
+
+;require.register("models/ShowsModel", function(exports, require, module) {
 var Model, ShowsModel,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
@@ -294,61 +397,25 @@ module.exports = ShowsModel = (function(_super) {
 
   function ShowsModel() {
     this.initialize = __bind(this.initialize, this);
+    this.success = __bind(this.success, this);
     return ShowsModel.__super__.constructor.apply(this, arguments);
   }
 
-  ShowsModel.prototype.docUrl = 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/edit?usp=sharing';
+  ShowsModel.prototype.docUrl = 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/pubhtml';
 
-  ShowsModel.prototype.initialize = function() {
-    return this.storage = Tabletop.init({
-      key: this.docUrl,
-      wait: true
+  ShowsModel.prototype.success = function(data, tabletop) {
+    return this.set({
+      "content": "Kommande spelningar....",
+      "shows": tabletop.sheets('Events').elements
     });
   };
 
-  ShowsModel.prototype.idAttribute = 'name';
-
-  ShowsModel.prototype.tabletop = {
-    instance: storage,
-    sheet: 'Events'
-  };
-
-  ShowsModel.prototype.sync = Backbone.tabletopSync;
-
-  return ShowsModel;
-
-})(Model);
-});
-
-;require.register("models/ShowsModel", function(exports, require, module) {
-var Model, ShowsModel,
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-Model = require('./supers/Model');
-
-module.exports = ShowsModel = (function(_super) {
-  __extends(ShowsModel, _super);
-
-  function ShowsModel() {
-    return ShowsModel.__super__.constructor.apply(this, arguments);
-  }
-
-  ShowsModel.prototype.defaults = {
-    content: "Kommande spelningar....",
-    shows: [
-      {
-        performer: "Fria Progg + Mats Drougge",
-        event: "Club Probation",
-        place: "Snövit, Ringvägen 147, 116 61 Stockholm, 08-640 54 44 ",
-        time: "19:e september kl 21:30"
-      }, {
-        performer: "Fria Progg m fl",
-        event: "Släcka Bränder",
-        place: "Upstairs Bar by Clarion Hotel, Stockholm",
-        time: "26:e september kl 21:00"
-      }
-    ]
+  ShowsModel.prototype.initialize = function() {
+    return Tabletop.init({
+      key: this.docUrl,
+      callback: this.success,
+      simpleSheet: false
+    });
   };
 
   return ShowsModel;
@@ -468,7 +535,8 @@ module.exports = Model = (function(_super) {
  * @author 
  * @since
  */
-var CitatView, ContactView, HomeView, NewsView, PicturesView, Router, ShowsView, SoundsView, VideosView, application,
+var CitatView, ContactView, DocModel, HomeView, NewsView, PicturesView, Router, ShowsView, SoundsView, VideosView, application,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -490,10 +558,13 @@ CitatView = require('../views/CitatView');
 
 HomeView = require('../views/HomeView');
 
+DocModel = require('../models/DocModel');
+
 module.exports = Router = (function(_super) {
   __extends(Router, _super);
 
   function Router() {
+    this.showEvents = __bind(this.showEvents, this);
     return Router.__super__.constructor.apply(this, arguments);
   }
 
@@ -513,7 +584,8 @@ module.exports = Router = (function(_super) {
     'videos': 'videos',
     'news': 'news',
     'sound': 'sounds',
-    'citat': 'citat'
+    'citat': 'citat',
+    'doc': 'doc'
   };
 
 
@@ -522,8 +594,14 @@ module.exports = Router = (function(_super) {
   	//--------------------------------------
    */
 
+  Router.prototype.showEvents = function(events) {
+    return $('#main-container').html((new EventsView({
+      model: events
+    })).render().el);
+  };
+
   Router.prototype.home = function() {
-    application.menuView.setSelectedItem('');
+    application.menuView.setSelectedItem('home');
     $('#menu-container').html(application.menuView.render().el);
     return $('#main-container').html((new HomeView()).render().el);
   };
@@ -537,7 +615,7 @@ module.exports = Router = (function(_super) {
   Router.prototype.shows = function() {
     application.menuView.setSelectedItem('shows');
     $('#menu-container').html(application.menuView.render().el);
-    return $('#main-container').html((new ShowsView()).render().el);
+    return $('#main-container').html((new ShowsView()).el);
   };
 
   Router.prototype.contact = function() {
@@ -709,11 +787,10 @@ module.exports = CitatView = (function(_super) {
   CitatView.prototype.quoteIx = 0;
 
   CitatView.prototype.initialize = function() {
-    this.model = new Model();
-    this.quotes = this.model.get('quotes');
+    this.quotes = new Model();
+    this.quotes.on('change', this._newQuote);
     console.log('quotes');
-    console.log(this.quotes);
-    return setTimeout(this._newQuote, 5000);
+    return console.log(this.quotes);
   };
 
   CitatView.prototype.render = function() {
@@ -722,22 +799,28 @@ module.exports = CitatView = (function(_super) {
   };
 
   CitatView.prototype._getQuote = function() {
+    var quotes;
+    quotes = this.quotes.get('quotes');
     return {
-      quote0: this.quoteIx === 0 ? this.quotes[this.quotes.length - 1].quote : this.quotes[this.quoteIx - 1].quote,
-      quote1: this.quotes[this.quoteIx].quote,
-      quote2: this.quoteIx === this.quotes.length - 1 ? this.quotes[0].quote : this.quotes[this.quoteIx + 1].quote
+      quote0: this.quoteIx === 0 ? quotes[quotes.length - 1].quote : quotes[this.quoteIx - 1].quote,
+      quote1: quotes[this.quoteIx].quote,
+      quote2: this.quoteIx === quotes.length - 1 ? quotes[0].quote : quotes[this.quoteIx + 1].quote
     };
   };
 
   CitatView.prototype._newQuote = function() {
+    console.log('new quotes');
+    console.log(this.quotes);
     this._nextQuoteIx();
     this.render();
     return setTimeout(this._newQuote, 8000);
   };
 
   CitatView.prototype._nextQuoteIx = function() {
+    var quotes;
+    quotes = this.quotes.get('quotes');
     this.quoteIx++;
-    if (this.quoteIx === this.quotes.length) {
+    if (this.quoteIx === quotes.length) {
       return this.quoteIx = 0;
     }
   };
@@ -845,6 +928,93 @@ module.exports = ShowsView = (function(_super) {
    */
 
   return ShowsView;
+
+})(View);
+});
+
+;require.register("views/EventsView", function(exports, require, module) {
+
+/*
+ * View Description
+ * 
+ * @langversion CoffeeScript
+ * 
+ * @author 
+ * @since
+ */
+var EventsModel, EventsView, View, template,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+View = require('./supers/View');
+
+EventsModel = require('../models/EventsModel');
+
+template = require('./templates/ShowsTemplate');
+
+module.exports = EventsView = (function(_super) {
+  __extends(EventsView, _super);
+
+  function EventsView() {
+    return EventsView.__super__.constructor.apply(this, arguments);
+  }
+
+
+  /*//--------------------------------------
+  	//+ PUBLIC PROPERTIES / CONSTANTS
+  	//--------------------------------------
+   */
+
+  EventsView.prototype.id = 'shows-view';
+
+  EventsView.prototype.template = template;
+
+
+  /*//--------------------------------------
+   	//+ INHERITED / OVERRIDES
+   	//--------------------------------------
+   */
+
+  EventsView.prototype.initialize = function() {
+    this.render = _.bind(this.render, this);
+    this.shows = new EventsModel();
+    return this.shows.on('all', this.newData);
+  };
+
+  EventsView.prototype.render = function() {
+    this.$el.html(this.template(this.getRenderData()));
+    return this;
+  };
+
+  EventsView.prototype.newData = function(event) {
+    console.log('Got event');
+    return console.log(event);
+  };
+
+  EventsView.prototype.getRenderData = function() {
+    console.log(this.shows.toJSON());
+    return this.shows.toJSON();
+  };
+
+
+  /*//--------------------------------------
+  	//+ PUBLIC METHODS / GETTERS / SETTERS
+  	//--------------------------------------
+   */
+
+
+  /*//--------------------------------------
+  	//+ EVENT HANDLERS
+  	//--------------------------------------
+   */
+
+
+  /*//--------------------------------------
+  	//+ PRIVATE AND PROTECTED METHODS
+  	//--------------------------------------
+   */
+
+  return EventsView;
 
 })(View);
 });
@@ -976,8 +1146,11 @@ module.exports = HomeView = (function(_super) {
   };
 
   HomeView.prototype.render = function() {
+    var citatView;
     this.$el.html(this.template(this.getRenderData()));
-    this.$el.append((new CitatView()).render().el);
+    console.log(this.el);
+    citatView = new CitatView();
+    this.$el.append(citatView.el);
     return this;
   };
 
@@ -1184,7 +1357,6 @@ module.exports = ShowsView = (function(_super) {
 
   ShowsView.prototype.render = function() {
     this.$el.html(this.template(this.getRenderData()));
-    this.$el.append((new CitatView()).render().el);
     return this;
   };
 
@@ -1306,7 +1478,8 @@ module.exports = ShowsView = (function(_super) {
  * @author 
  * @since
  */
-var ShowsModel, ShowsView, View, template,
+var DocModel, ShowsModel, ShowsView, View, template,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -1314,12 +1487,17 @@ View = require('./supers/View');
 
 ShowsModel = require('../models/ShowsModel');
 
+DocModel = require('../models/DocModel');
+
 template = require('./templates/ShowsTemplate');
 
 module.exports = ShowsView = (function(_super) {
   __extends(ShowsView, _super);
 
   function ShowsView() {
+    this.getRenderData = __bind(this.getRenderData, this);
+    this.newData = __bind(this.newData, this);
+    this.initialize = __bind(this.initialize, this);
     return ShowsView.__super__.constructor.apply(this, arguments);
   }
 
@@ -1341,7 +1519,8 @@ module.exports = ShowsView = (function(_super) {
 
   ShowsView.prototype.initialize = function() {
     this.render = _.bind(this.render, this);
-    return this.shows = new ShowsModel();
+    this.shows = new ShowsModel();
+    return this.shows.on('change', this.newData);
   };
 
   ShowsView.prototype.render = function() {
@@ -1349,7 +1528,14 @@ module.exports = ShowsView = (function(_super) {
     return this;
   };
 
+  ShowsView.prototype.newData = function() {
+    console.log('new Data');
+    console.log(this.shows);
+    return this.render();
+  };
+
   ShowsView.prototype.getRenderData = function() {
+    console.log('@shows.toJSON()');
     console.log(this.shows.toJSON());
     return this.shows.toJSON();
   };

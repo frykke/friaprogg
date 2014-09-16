@@ -6,7 +6,10 @@
     "\"\""
   ],
   "description": "**Tabletop.js** takes a Google Spreadsheet and makes it easily accessible through JavaScript. With zero dependencies!",
-  "main": "src/tabletop.js",
+  "main": [
+    "src/tabletop.js",
+    "src/backbone.tabletopSync.js"
+  ],
   "keywords": [
     "table",
     "sql",

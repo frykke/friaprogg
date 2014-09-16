@@ -9,6 +9,7 @@
 
 View = require('./supers/View')
 ShowsModel = require('../models/ShowsModel')
+DocModel = require('../models/DocModel')
 template = require('./templates/ShowsTemplate')
 
 module.exports = class ShowsView extends View
@@ -33,22 +34,26 @@ module.exports = class ShowsView extends View
 	#
    	# @private
 	#
-	initialize: ->
+	initialize: =>
 		@render = _.bind( @render, @ )
 		@shows = new ShowsModel()
-
+		@shows.on('change', @newData);
 	#
    	# @private
 	#
 	render: ->
 		@$el.html( @template( @getRenderData() ) )
-
 		return @
 
+	newData: () =>
+		console.log 'new Data'
+		console.log @shows
+		@render()
 	#
    	# @private
 	#
-	getRenderData: ->
+	getRenderData: =>
+		console.log '@shows.toJSON()'
 		console.log @shows.toJSON()
 		return @shows.toJSON()
 

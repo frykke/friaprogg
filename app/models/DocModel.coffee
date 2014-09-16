@@ -1,18 +1,15 @@
 Model = require('./supers/Model')
+module.exports = class DocModel extends Model
 
-module.exports = class ShowsModel extends Model
+	docUrl: 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/pubhtml'
 
-	docUrl: 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/edit?usp=sharing'
-	
+	success: (data, tabletop) =>
+		console.log 'got it'
+		console.log data
+		@set({ "content": "Kommande spelningar....", "shows": data})
+		
 	initialize: =>
-		@storage = Tabletop.init({ 
-									key: @docUrl,
-									wait: true 
-						})
-	idAttribute: 'name',
-	tabletop: {
-		  instance: storage,
-		  sheet: 'Events'
-		}
-
-	sync: Backbone.tabletopSync
+		Tabletop.init({key: @docUrl, callback: @success, simpleSheet: true})
+	
+	idAttribute: 'name'
+	

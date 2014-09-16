@@ -18,27 +18,28 @@
 			
 		</div>
 	</div>
-  	<div class='row'>
+  	<div class='row' id='shows-list'>
 	{{#each shows}}
-		<div class='three sixth padded bounceInUp animated'>
-			<div class='orange box'>
-				<div class="list-group-item active">
+		{{#compare type "==" "event"}}
+			<div class='three sixth padded bounceInUp animated'>
+				<div class='orange box'>
+					<div class="list-group-item active">
 						<h4 class="black list-group-item-heading">{{performer}}</h4>
-				</div>
-				{{#if event}}
-				<div class="list-group-item">
-					{{event}}
-				</div>
-				{{/if}}
-				<div class="list-group-item">
-					{{place}}
-				</div>
-				<div class="list-group-item">
-					{{time}}
+					</div>
+					{{#if event}}
+					<div class="list-group-item">
+						{{event}}
+					</div>
+					{{/if}}
+					<div class="list-group-item">
+						{{place}}
+					</div>
+					<div class="list-group-item">
+						{{time}}
+					</div>
 				</div>
 			</div>
-		</div>
-		
+		{{/compare}}
 	{{/each}}
 	</div>
 	<div class='row'>

@@ -38,11 +38,12 @@ module.exports = class CitatView extends View
 	# @private
 	#
 	initialize: ->
-		@model = new Model()
-		@quotes = @model.get('quotes')
+		@quotes = new Model()
+		#@quotes = @model.get('quotes')
+		@quotes.on('change', @_newQuote);
 		console.log 'quotes'
 		console.log @quotes
-		setTimeout(@_newQuote, 5000)
+		#setTimeout(@_newQuote, 5000)
 
 	#
 	# @private
@@ -56,20 +57,24 @@ module.exports = class CitatView extends View
 	# @private
 	#
 	_getQuote: =>
+		quotes = @quotes.get('quotes')
 		return {
-			quote0: if @quoteIx == 0 then @quotes[@quotes.length-1].quote else @quotes[@quoteIx-1].quote
-			quote1: @quotes[@quoteIx].quote
-			quote2: if (@quoteIx == @quotes.length-1) then @quotes[0].quote else @quotes[@quoteIx+1].quote
+			quote0: if @quoteIx == 0 then quotes[quotes.length-1].quote else quotes[@quoteIx-1].quote
+			quote1: quotes[@quoteIx].quote
+			quote2: if (@quoteIx == quotes.length-1) then quotes[0].quote else quotes[@quoteIx+1].quote
 		}
 
 	_newQuote: =>
+		console.log 'new quotes'
+		console.log @quotes
 		@_nextQuoteIx()
 		@render()
 		setTimeout(@_newQuote, 8000)
 
 	_nextQuoteIx: =>
+		quotes = @quotes.get('quotes')
 		@quoteIx++
-		if @quoteIx == @quotes.length then @quoteIx = 0
+		if @quoteIx == quotes.length then @quoteIx = 0
 
 
 	getRenderData: ->

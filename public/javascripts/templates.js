@@ -126,7 +126,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   if (helper = helpers.content) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.content); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "</h4>\r\n			</div>\r\n		</div>\r\n	</div>\r\n</div>\r\n\r\n\r\n";
+    + "</h4>\r\n			</div>\r\n		</div>\r\n	</div>\r\n</div>\r\n<div id='citat-view'>\r\n</div>\r\n\r\n\r\n";
   return buffer;
   });
 if (typeof define === 'function' && define.amd) {
@@ -252,37 +252,46 @@ if (typeof define === 'function' && define.amd) {
 var __templateData = Handlebars.template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, functionType="function", escapeExpression=this.escapeExpression, self=this;
+  var buffer = "", stack1, helper, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, helper;
-  buffer += "\r\n		<div class='three sixth padded bounceInUp animated'>\r\n			<div class='orange box'>\r\n				<div class=\"list-group-item active\">\r\n						<h4 class=\"black list-group-item-heading\">";
-  if (helper = helpers.performer) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.performer); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "</h4>\r\n				</div>\r\n				";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.event), {hash:{},inverse:self.noop,fn:self.program(2, program2, data),data:data});
+  var buffer = "", stack1, helper, options;
+  buffer += "\r\n		";
+  stack1 = (helper = helpers.compare || (depth0 && depth0.compare),options={hash:{},inverse:self.noop,fn:self.program(2, program2, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.type), "==", "event", options) : helperMissing.call(depth0, "compare", (depth0 && depth0.type), "==", "event", options));
   if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\r\n				<div class=\"list-group-item\">\r\n					";
-  if (helper = helpers.place) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.place); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "\r\n				</div>\r\n				<div class=\"list-group-item\">\r\n					";
-  if (helper = helpers.time) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.time); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "\r\n				</div>\r\n			</div>\r\n		</div>\r\n		\r\n	";
+  buffer += "\r\n	";
   return buffer;
   }
 function program2(depth0,data) {
   
   var buffer = "", stack1, helper;
-  buffer += "\r\n				<div class=\"list-group-item\">\r\n					";
+  buffer += "\r\n			<div class='three sixth padded bounceInUp animated'>\r\n				<div class='orange box'>\r\n					<div class=\"list-group-item active\">\r\n						<h4 class=\"black list-group-item-heading\">";
+  if (helper = helpers.performer) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.performer); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
+    + "</h4>\r\n					</div>\r\n					";
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.event), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += "\r\n					<div class=\"list-group-item\">\r\n						";
+  if (helper = helpers.place) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.place); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
+    + "\r\n					</div>\r\n					<div class=\"list-group-item\">\r\n						";
+  if (helper = helpers.time) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.time); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
+    + "\r\n					</div>\r\n				</div>\r\n			</div>\r\n		";
+  return buffer;
+  }
+function program3(depth0,data) {
+  
+  var buffer = "", stack1, helper;
+  buffer += "\r\n					<div class=\"list-group-item\">\r\n						";
   if (helper = helpers.event) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.event); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "\r\n				</div>\r\n				";
+    + "\r\n					</div>\r\n					";
   return buffer;
   }
 
@@ -290,7 +299,7 @@ function program2(depth0,data) {
   if (helper = helpers.content) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.content); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "</h4>\r\n				</div>\r\n			</div>\r\n			\r\n		</div>\r\n	</div>\r\n  	<div class='row'>\r\n	";
+    + "</h4>\r\n				</div>\r\n			</div>\r\n			\r\n		</div>\r\n	</div>\r\n  	<div class='row' id='shows-list'>\r\n	";
   stack1 = helpers.each.call(depth0, (depth0 && depth0.shows), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += "\r\n	</div>\r\n	<div class='row'>\r\n		<div class=\"one sixth three-up-small-tablet two-up-mobile padded \">\r\n			<div class='orange box rotateIn animated'>\r\n				<div class=\"block yellow\">\r\n					<img src='/images/affisch-sm-y.jpg' alt='Affisch'/>\r\n				</div>\r\n			</div>\r\n		</div>\r\n	</div>\r\n	\r\n\r\n";

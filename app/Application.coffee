@@ -18,6 +18,7 @@ Application =
     ###//--------------------------------------
     //+ PUBLIC PROPERTIES / CONSTANTS
     //--------------------------------------###
+    docUrl: 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/pubhtml'
 
     ###//--------------------------------------
     //+ INHERITED / OVERRIDES
