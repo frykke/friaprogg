@@ -54,8 +54,7 @@ module.exports = class MenuView extends View
 			{url: 'history', text: 'Historia'},
 			{url: 'contact', text: 'Kontakt'},
 			{url: 'pictures', text: 'Bilder'},
-			{url: 'videos', text: 'Video'},
-			{url: 'sound', text: 'Ljud'}
+			{url: 'sound', text: 'Musik'}
 		]
 	
 	getRenderData: ->

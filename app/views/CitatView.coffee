@@ -9,7 +9,6 @@
 
 View = require('./supers/View')
 Model = require('../models/CitatModel')
-DocModel = require('../models/DocModel')
 template = require('./templates/QuotesTemplate')
 
 module.exports = class CitatView extends View
@@ -39,18 +38,13 @@ module.exports = class CitatView extends View
 	#
 	initialize: ->
 		@quotes = new Model()
-		#@quotes = @model.get('quotes')
 		@quotes.on('change', @_newQuote);
-		console.log 'quotes'
-		console.log @quotes
-		#setTimeout(@_newQuote, 5000)
-
+		
 	#
 	# @private
 	#
 	render: =>
 		@$el.html( @template( @getRenderData() ) )
-
 		return @
 
 	#
@@ -65,8 +59,6 @@ module.exports = class CitatView extends View
 		}
 
 	_newQuote: =>
-		console.log 'new quotes'
-		console.log @quotes
 		@_nextQuoteIx()
 		@render()
 		setTimeout(@_newQuote, 8000)
@@ -78,7 +70,6 @@ module.exports = class CitatView extends View
 
 
 	getRenderData: ->
-		console.log @_getQuote()
 		return @_getQuote()
 
 	###//--------------------------------------

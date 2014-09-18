@@ -8,7 +8,7 @@
  ###
 
 View = require('./supers/View')
-template = require('./templates/ShowsTemplate')
+template = require('./templates/NewsTemplate')
 CitatView = require('./CitatView')
 module.exports = class ShowsView extends View
 
@@ -19,7 +19,7 @@ module.exports = class ShowsView extends View
   	#
    	# @private
 	#
-	id: 'shows-view'
+	id: 'news-view'
 	#
    	# @private
 	#
@@ -40,6 +40,9 @@ module.exports = class ShowsView extends View
 	#
 	render: ->
 		@$el.html( @template( @getRenderData() ) )
+		citatView = new CitatView()
+		@$el.find("#news-container").append(citatView.el)
+
 		return @
 
 	#
@@ -47,7 +50,7 @@ module.exports = class ShowsView extends View
 	#
 	getRenderData: ->
 		return {
-			content: "Nyheter...."
+			content: "Fria Progg meddelar...."
 		}
 
 	###//--------------------------------------

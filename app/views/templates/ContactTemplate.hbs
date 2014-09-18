@@ -1,0 +1,32 @@
+<div class='row'>
+		<div class='one whole box white'>
+			<div class='row'>
+		  		<div class="one tenth list-group-item active">
+						<img src='/images/v-small.jpg' alt='v sign' />
+				</div>
+				<div class="nine tenth list-group-item active">
+					<h4>{{content}}</h4>
+				</div>
+			</div>
+			
+		</div>
+	</div>
+<div class='row' id='contact-list'>
+	<div class='one whole padded'>
+	{{#each contacts}}
+		<div class='box one twelfth white'>
+		{{#if contact}}
+			<a class='noicon' href="{{contact}}">
+			{{#if image}}
+				<img src="{{image}}" alt="{{text}}" />
+			{{else}}
+				{{text}}
+			{{/if}}
+			</a>
+		{{else}}
+			{{text}}
+		{{/if}}
+	</div>    
+	{{/each}}
+	</div>S
+</div>

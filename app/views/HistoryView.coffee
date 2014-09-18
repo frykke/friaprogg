@@ -8,6 +8,7 @@
  ###
 
 View = require('./supers/View')
+HistoryModel = require('../models/HistoryModel')
 template = require('./templates/HistoryTemplate')
 
 module.exports = class HistoryView extends View
@@ -34,7 +35,8 @@ module.exports = class HistoryView extends View
 	#
 	initialize: ->
 		@render = _.bind( @render, @ )
-
+		@model = new HistoryModel()
+		@model.on('change', @newData);
 	#
    	# @private
 	#
@@ -46,11 +48,17 @@ module.exports = class HistoryView extends View
 	#
    	# @private
 	#
-	getRenderData: ->
-		return {
-			content: "Fria progg kommer från...."
-		}
-
+	newData: () =>
+		console.log 'new Data'
+		console.log @model
+		@render()
+	#
+   	# @private
+	#
+	getRenderData: =>
+		console.log '@model.toJSON()'
+		console.log @model.toJSON()
+		return @model.toJSON()
 	###//--------------------------------------
 	//+ PUBLIC METHODS / GETTERS / SETTERS
 	//--------------------------------------###

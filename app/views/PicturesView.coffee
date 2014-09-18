@@ -8,9 +8,10 @@
  ###
 
 View = require('./supers/View')
-template = require('./templates/ShowsTemplate')
+PicturesModel = require('../models/PicturesModel')
+template = require('./templates/PicturesTemplate')
 
-module.exports = class ShowsView extends View
+module.exports = class PicturesView extends View
 
 	###//--------------------------------------
 	//+ PUBLIC PROPERTIES / CONSTANTS
@@ -19,7 +20,7 @@ module.exports = class ShowsView extends View
   	#
    	# @private
 	#
-	id: 'shows-view'
+	id: 'pictures-view'
 	#
    	# @private
 	#
@@ -34,7 +35,8 @@ module.exports = class ShowsView extends View
 	#
 	initialize: ->
 		@render = _.bind( @render, @ )
-
+		@model = new PicturesModel()
+		@model.on('change', @newData);
 	#
    	# @private
 	#
@@ -46,11 +48,17 @@ module.exports = class ShowsView extends View
 	#
    	# @private
 	#
-	getRenderData: ->
-		return {
-			content: "Foto...."
-		}
-
+	newData: () =>
+		console.log 'new Data'
+		console.log @model
+		@render()
+	#
+   	# @private
+	#
+	getRenderData: =>
+		console.log '@model.toJSON()'
+		console.log @model.toJSON()
+		return @model.toJSON()
 	###//--------------------------------------
 	//+ PUBLIC METHODS / GETTERS / SETTERS
 	//--------------------------------------###

@@ -231,7 +231,10 @@ application = require('Application');
 
 $(function() {
   application.initialize();
-  return Backbone.history.start();
+  Backbone.history.start();
+  return application.navigate("home", {
+    trigger: true
+  });
 });
 
 _compareHelper = function(lvalue, operator, rvalue, options) {
@@ -292,15 +295,7 @@ _compareHelper = function(lvalue, operator, rvalue, options) {
   }
 };
 
-console.log('Handlebars');
-
-console.log(Handlebars);
-
-console.log(_compareHelper);
-
 Handlebars.registerHelper('compare', _compareHelper);
-
-console.log(Handlebars);
 });
 
 ;require.register("models/CitatModel", function(exports, require, module) {
@@ -337,6 +332,47 @@ module.exports = CitatModel = (function(_super) {
   };
 
   return CitatModel;
+
+})(Model);
+});
+
+;require.register("models/ContactModel", function(exports, require, module) {
+var ContactModel, Model,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+Model = require('./supers/Model');
+
+module.exports = ContactModel = (function(_super) {
+  __extends(ContactModel, _super);
+
+  function ContactModel() {
+    this.initialize = __bind(this.initialize, this);
+    this.success = __bind(this.success, this);
+    return ContactModel.__super__.constructor.apply(this, arguments);
+  }
+
+  ContactModel.prototype.docUrl = 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/pubhtml';
+
+  ContactModel.prototype.success = function(data, tabletop) {
+    console.log(tabletop);
+    console.log(data);
+    return this.set({
+      "content": "Kontakta Fria Progg...",
+      "contacts": tabletop.sheets('contacts').elements
+    });
+  };
+
+  ContactModel.prototype.initialize = function() {
+    return Tabletop.init({
+      key: this.docUrl,
+      callback: this.success,
+      simpleSheet: false
+    });
+  };
+
+  return ContactModel;
 
 })(Model);
 });
@@ -384,6 +420,88 @@ module.exports = DocModel = (function(_super) {
 })(Model);
 });
 
+;require.register("models/HistoryModel", function(exports, require, module) {
+var HistoryModel, Model,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+Model = require('./supers/Model');
+
+module.exports = HistoryModel = (function(_super) {
+  __extends(HistoryModel, _super);
+
+  function HistoryModel() {
+    this.initialize = __bind(this.initialize, this);
+    this.success = __bind(this.success, this);
+    return HistoryModel.__super__.constructor.apply(this, arguments);
+  }
+
+  HistoryModel.prototype.docUrl = 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/pubhtml';
+
+  HistoryModel.prototype.success = function(data, tabletop) {
+    console.log(tabletop);
+    console.log(data);
+    return this.set({
+      "content": "Om Fria Progg....",
+      "histories": tabletop.sheets('history').elements
+    });
+  };
+
+  HistoryModel.prototype.initialize = function() {
+    return Tabletop.init({
+      key: this.docUrl,
+      callback: this.success,
+      simpleSheet: false
+    });
+  };
+
+  return HistoryModel;
+
+})(Model);
+});
+
+;require.register("models/PicturesModel", function(exports, require, module) {
+var Model, PicturesModel,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+Model = require('./supers/Model');
+
+module.exports = PicturesModel = (function(_super) {
+  __extends(PicturesModel, _super);
+
+  function PicturesModel() {
+    this.initialize = __bind(this.initialize, this);
+    this.success = __bind(this.success, this);
+    return PicturesModel.__super__.constructor.apply(this, arguments);
+  }
+
+  PicturesModel.prototype.docUrl = 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/pubhtml';
+
+  PicturesModel.prototype.success = function(data, tabletop) {
+    console.log(tabletop);
+    console.log(data);
+    return this.set({
+      "content": "Några bilder",
+      "images": tabletop.sheets('images').elements
+    });
+  };
+
+  PicturesModel.prototype.initialize = function() {
+    return Tabletop.init({
+      key: this.docUrl,
+      callback: this.success,
+      simpleSheet: false
+    });
+  };
+
+  return PicturesModel;
+
+})(Model);
+});
+
 ;require.register("models/ShowsModel", function(exports, require, module) {
 var Model, ShowsModel,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
@@ -404,6 +522,8 @@ module.exports = ShowsModel = (function(_super) {
   ShowsModel.prototype.docUrl = 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/pubhtml';
 
   ShowsModel.prototype.success = function(data, tabletop) {
+    console.log(tabletop);
+    console.log(data);
     return this.set({
       "content": "Kommande spelningar....",
       "shows": tabletop.sheets('Events').elements
@@ -419,6 +539,45 @@ module.exports = ShowsModel = (function(_super) {
   };
 
   return ShowsModel;
+
+})(Model);
+});
+
+;require.register("models/SoundsModel", function(exports, require, module) {
+var Model, SoundsModel,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+Model = require('./supers/Model');
+
+module.exports = SoundsModel = (function(_super) {
+  __extends(SoundsModel, _super);
+
+  function SoundsModel() {
+    this.initialize = __bind(this.initialize, this);
+    this.success = __bind(this.success, this);
+    return SoundsModel.__super__.constructor.apply(this, arguments);
+  }
+
+  SoundsModel.prototype.docUrl = 'https://docs.google.com/spreadsheets/d/1ytHnb6c_QYz5Xb_EZDwRlw7JsxEa5e_nQllqz9HvBT8/pubhtml';
+
+  SoundsModel.prototype.success = function(data, tabletop) {
+    return this.set({
+      "content": "Lyssna på fria progg....",
+      "sounds": tabletop.sheets('sounds').elements
+    });
+  };
+
+  SoundsModel.prototype.initialize = function() {
+    return Tabletop.init({
+      key: this.docUrl,
+      callback: this.success,
+      simpleSheet: false
+    });
+  };
+
+  return SoundsModel;
 
 })(Model);
 });
@@ -535,8 +694,7 @@ module.exports = Model = (function(_super) {
  * @author 
  * @since
  */
-var CitatView, ContactView, DocModel, HomeView, NewsView, PicturesView, Router, ShowsView, SoundsView, VideosView, application,
-  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+var CitatView, ContactView, HomeView, NewsView, PicturesView, Router, ShowsView, SoundsView, VideosView, application,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -558,13 +716,10 @@ CitatView = require('../views/CitatView');
 
 HomeView = require('../views/HomeView');
 
-DocModel = require('../models/DocModel');
-
 module.exports = Router = (function(_super) {
   __extends(Router, _super);
 
   function Router() {
-    this.showEvents = __bind(this.showEvents, this);
     return Router.__super__.constructor.apply(this, arguments);
   }
 
@@ -593,12 +748,6 @@ module.exports = Router = (function(_super) {
   	//+ Route Handlers
   	//--------------------------------------
    */
-
-  Router.prototype.showEvents = function(events) {
-    return $('#main-container').html((new EventsView({
-      model: events
-    })).render().el);
-  };
 
   Router.prototype.home = function() {
     application.menuView.setSelectedItem('home');
@@ -742,7 +891,7 @@ module.exports = BackboneView = (function(_super) {
  * @author 
  * @since
  */
-var CitatView, DocModel, Model, View, template,
+var CitatView, Model, View, template,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -750,8 +899,6 @@ var CitatView, DocModel, Model, View, template,
 View = require('./supers/View');
 
 Model = require('../models/CitatModel');
-
-DocModel = require('../models/DocModel');
 
 template = require('./templates/QuotesTemplate');
 
@@ -788,9 +935,7 @@ module.exports = CitatView = (function(_super) {
 
   CitatView.prototype.initialize = function() {
     this.quotes = new Model();
-    this.quotes.on('change', this._newQuote);
-    console.log('quotes');
-    return console.log(this.quotes);
+    return this.quotes.on('change', this._newQuote);
   };
 
   CitatView.prototype.render = function() {
@@ -809,8 +954,6 @@ module.exports = CitatView = (function(_super) {
   };
 
   CitatView.prototype._newQuote = function() {
-    console.log('new quotes');
-    console.log(this.quotes);
     this._nextQuoteIx();
     this.render();
     return setTimeout(this._newQuote, 8000);
@@ -826,7 +969,6 @@ module.exports = CitatView = (function(_super) {
   };
 
   CitatView.prototype.getRenderData = function() {
-    console.log(this._getQuote());
     return this._getQuote();
   };
 
@@ -863,19 +1005,24 @@ module.exports = CitatView = (function(_super) {
  * @author 
  * @since
  */
-var ShowsView, View, template,
+var ContactModel, ContactView, View, template,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 View = require('./supers/View');
 
-template = require('./templates/ShowsTemplate');
+ContactModel = require('../models/ContactModel');
 
-module.exports = ShowsView = (function(_super) {
-  __extends(ShowsView, _super);
+template = require('./templates/ContactTemplate');
 
-  function ShowsView() {
-    return ShowsView.__super__.constructor.apply(this, arguments);
+module.exports = ContactView = (function(_super) {
+  __extends(ContactView, _super);
+
+  function ContactView() {
+    this.getRenderData = __bind(this.getRenderData, this);
+    this.newData = __bind(this.newData, this);
+    return ContactView.__super__.constructor.apply(this, arguments);
   }
 
 
@@ -884,9 +1031,9 @@ module.exports = ShowsView = (function(_super) {
   	//--------------------------------------
    */
 
-  ShowsView.prototype.id = 'shows-view';
+  ContactView.prototype.id = 'contact-view';
 
-  ShowsView.prototype.template = template;
+  ContactView.prototype.template = template;
 
 
   /*//--------------------------------------
@@ -894,19 +1041,27 @@ module.exports = ShowsView = (function(_super) {
    	//--------------------------------------
    */
 
-  ShowsView.prototype.initialize = function() {
-    return this.render = _.bind(this.render, this);
+  ContactView.prototype.initialize = function() {
+    this.render = _.bind(this.render, this);
+    this.model = new ContactModel();
+    return this.model.on('change', this.newData);
   };
 
-  ShowsView.prototype.render = function() {
+  ContactView.prototype.render = function() {
     this.$el.html(this.template(this.getRenderData()));
     return this;
   };
 
-  ShowsView.prototype.getRenderData = function() {
-    return {
-      content: "Kontakt...."
-    };
+  ContactView.prototype.newData = function() {
+    console.log('new Data');
+    console.log(this.model);
+    return this.render();
+  };
+
+  ContactView.prototype.getRenderData = function() {
+    console.log('@model.toJSON()');
+    console.log(this.model.toJSON());
+    return this.model.toJSON();
   };
 
 
@@ -927,7 +1082,7 @@ module.exports = ShowsView = (function(_super) {
   	//--------------------------------------
    */
 
-  return ShowsView;
+  return ContactView;
 
 })(View);
 });
@@ -1029,11 +1184,14 @@ module.exports = EventsView = (function(_super) {
  * @author 
  * @since
  */
-var HistoryView, View, template,
+var HistoryModel, HistoryView, View, template,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 View = require('./supers/View');
+
+HistoryModel = require('../models/HistoryModel');
 
 template = require('./templates/HistoryTemplate');
 
@@ -1041,6 +1199,8 @@ module.exports = HistoryView = (function(_super) {
   __extends(HistoryView, _super);
 
   function HistoryView() {
+    this.getRenderData = __bind(this.getRenderData, this);
+    this.newData = __bind(this.newData, this);
     return HistoryView.__super__.constructor.apply(this, arguments);
   }
 
@@ -1061,7 +1221,9 @@ module.exports = HistoryView = (function(_super) {
    */
 
   HistoryView.prototype.initialize = function() {
-    return this.render = _.bind(this.render, this);
+    this.render = _.bind(this.render, this);
+    this.model = new HistoryModel();
+    return this.model.on('change', this.newData);
   };
 
   HistoryView.prototype.render = function() {
@@ -1069,10 +1231,16 @@ module.exports = HistoryView = (function(_super) {
     return this;
   };
 
+  HistoryView.prototype.newData = function() {
+    console.log('new Data');
+    console.log(this.model);
+    return this.render();
+  };
+
   HistoryView.prototype.getRenderData = function() {
-    return {
-      content: "Fria progg kommer från...."
-    };
+    console.log('@model.toJSON()');
+    console.log(this.model.toJSON());
+    return this.model.toJSON();
   };
 
 
@@ -1146,17 +1314,14 @@ module.exports = HomeView = (function(_super) {
   };
 
   HomeView.prototype.render = function() {
-    var citatView;
     this.$el.html(this.template(this.getRenderData()));
     console.log(this.el);
-    citatView = new CitatView();
-    this.$el.append(citatView.el);
     return this;
   };
 
   HomeView.prototype.getRenderData = function() {
     return {
-      content: "Välkommen hem till fria progg"
+      content: "Välkommen hem till..."
     };
   };
 
@@ -1256,11 +1421,8 @@ module.exports = MenuView = (function(_super) {
       url: 'pictures',
       text: 'Bilder'
     }, {
-      url: 'videos',
-      text: 'Video'
-    }, {
       url: 'sound',
-      text: 'Ljud'
+      text: 'Musik'
     }
   ];
 
@@ -1324,7 +1486,7 @@ var CitatView, ShowsView, View, template,
 
 View = require('./supers/View');
 
-template = require('./templates/ShowsTemplate');
+template = require('./templates/NewsTemplate');
 
 CitatView = require('./CitatView');
 
@@ -1341,7 +1503,7 @@ module.exports = ShowsView = (function(_super) {
   	//--------------------------------------
    */
 
-  ShowsView.prototype.id = 'shows-view';
+  ShowsView.prototype.id = 'news-view';
 
   ShowsView.prototype.template = template;
 
@@ -1356,13 +1518,16 @@ module.exports = ShowsView = (function(_super) {
   };
 
   ShowsView.prototype.render = function() {
+    var citatView;
     this.$el.html(this.template(this.getRenderData()));
+    citatView = new CitatView();
+    this.$el.find("#news-container").append(citatView.el);
     return this;
   };
 
   ShowsView.prototype.getRenderData = function() {
     return {
-      content: "Nyheter...."
+      content: "Fria Progg meddelar...."
     };
   };
 
@@ -1399,19 +1564,24 @@ module.exports = ShowsView = (function(_super) {
  * @author 
  * @since
  */
-var ShowsView, View, template,
+var PicturesModel, PicturesView, View, template,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 View = require('./supers/View');
 
-template = require('./templates/ShowsTemplate');
+PicturesModel = require('../models/PicturesModel');
 
-module.exports = ShowsView = (function(_super) {
-  __extends(ShowsView, _super);
+template = require('./templates/PicturesTemplate');
 
-  function ShowsView() {
-    return ShowsView.__super__.constructor.apply(this, arguments);
+module.exports = PicturesView = (function(_super) {
+  __extends(PicturesView, _super);
+
+  function PicturesView() {
+    this.getRenderData = __bind(this.getRenderData, this);
+    this.newData = __bind(this.newData, this);
+    return PicturesView.__super__.constructor.apply(this, arguments);
   }
 
 
@@ -1420,9 +1590,9 @@ module.exports = ShowsView = (function(_super) {
   	//--------------------------------------
    */
 
-  ShowsView.prototype.id = 'shows-view';
+  PicturesView.prototype.id = 'pictures-view';
 
-  ShowsView.prototype.template = template;
+  PicturesView.prototype.template = template;
 
 
   /*//--------------------------------------
@@ -1430,19 +1600,27 @@ module.exports = ShowsView = (function(_super) {
    	//--------------------------------------
    */
 
-  ShowsView.prototype.initialize = function() {
-    return this.render = _.bind(this.render, this);
+  PicturesView.prototype.initialize = function() {
+    this.render = _.bind(this.render, this);
+    this.model = new PicturesModel();
+    return this.model.on('change', this.newData);
   };
 
-  ShowsView.prototype.render = function() {
+  PicturesView.prototype.render = function() {
     this.$el.html(this.template(this.getRenderData()));
     return this;
   };
 
-  ShowsView.prototype.getRenderData = function() {
-    return {
-      content: "Foto...."
-    };
+  PicturesView.prototype.newData = function() {
+    console.log('new Data');
+    console.log(this.model);
+    return this.render();
+  };
+
+  PicturesView.prototype.getRenderData = function() {
+    console.log('@model.toJSON()');
+    console.log(this.model.toJSON());
+    return this.model.toJSON();
   };
 
 
@@ -1463,7 +1641,7 @@ module.exports = ShowsView = (function(_super) {
   	//--------------------------------------
    */
 
-  return ShowsView;
+  return PicturesView;
 
 })(View);
 });
@@ -1478,7 +1656,7 @@ module.exports = ShowsView = (function(_super) {
  * @author 
  * @since
  */
-var DocModel, ShowsModel, ShowsView, View, template,
+var ShowsModel, ShowsView, View, template,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -1486,8 +1664,6 @@ var DocModel, ShowsModel, ShowsView, View, template,
 View = require('./supers/View');
 
 ShowsModel = require('../models/ShowsModel');
-
-DocModel = require('../models/DocModel');
 
 template = require('./templates/ShowsTemplate');
 
@@ -1573,19 +1749,24 @@ module.exports = ShowsView = (function(_super) {
  * @author 
  * @since
  */
-var ShowsView, View, template,
+var SoundsModel, SoundsView, View, template,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 View = require('./supers/View');
 
+SoundsModel = require('../models/SoundsModel');
+
 template = require('./templates/SoundsTemplate');
 
-module.exports = ShowsView = (function(_super) {
-  __extends(ShowsView, _super);
+module.exports = SoundsView = (function(_super) {
+  __extends(SoundsView, _super);
 
-  function ShowsView() {
-    return ShowsView.__super__.constructor.apply(this, arguments);
+  function SoundsView() {
+    this.getRenderData = __bind(this.getRenderData, this);
+    this.newData = __bind(this.newData, this);
+    return SoundsView.__super__.constructor.apply(this, arguments);
   }
 
 
@@ -1594,9 +1775,9 @@ module.exports = ShowsView = (function(_super) {
   	//--------------------------------------
    */
 
-  ShowsView.prototype.id = 'shows-view';
+  SoundsView.prototype.id = 'shows-view';
 
-  ShowsView.prototype.template = template;
+  SoundsView.prototype.template = template;
 
 
   /*//--------------------------------------
@@ -1604,19 +1785,27 @@ module.exports = ShowsView = (function(_super) {
    	//--------------------------------------
    */
 
-  ShowsView.prototype.initialize = function() {
-    return this.render = _.bind(this.render, this);
+  SoundsView.prototype.initialize = function() {
+    this.render = _.bind(this.render, this);
+    this.model = new SoundsModel();
+    return this.model.on('change', this.newData);
   };
 
-  ShowsView.prototype.render = function() {
+  SoundsView.prototype.render = function() {
     this.$el.html(this.template(this.getRenderData()));
     return this;
   };
 
-  ShowsView.prototype.getRenderData = function() {
-    return {
-      content: "Musik musik...."
-    };
+  SoundsView.prototype.newData = function() {
+    console.log('new Data');
+    console.log(this.model);
+    return this.render();
+  };
+
+  SoundsView.prototype.getRenderData = function() {
+    console.log('@shows.toJSON()');
+    console.log(this.model.toJSON());
+    return this.model.toJSON();
   };
 
 
@@ -1637,7 +1826,7 @@ module.exports = ShowsView = (function(_super) {
   	//--------------------------------------
    */
 
-  return ShowsView;
+  return SoundsView;
 
 })(View);
 });

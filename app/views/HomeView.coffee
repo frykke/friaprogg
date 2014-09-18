@@ -42,8 +42,7 @@ module.exports = class HomeView extends View
 	render: ->
 		@$el.html( @template( @getRenderData() ) )
 		console.log @el
-		citatView = new CitatView()
-		@$el.append(citatView.el)
+		
 		return @
 
 	#
@@ -51,7 +50,7 @@ module.exports = class HomeView extends View
 	#
 	getRenderData: ->
 		return {
-			content: "Välkommen hem till fria progg"
+			content: "Välkommen hem till..."
 		}
 
 	###//--------------------------------------

@@ -16,7 +16,6 @@ NewsView = require( '../views/NewsView' )
 SoundsView = require( '../views/SoundsView' )
 CitatView = require( '../views/CitatView' )
 HomeView = require( '../views/HomeView' )
-DocModel = require( '../models/DocModel' )
 module.exports = class Router extends Backbone.Router
 
 	###//--------------------------------------
@@ -39,14 +38,10 @@ module.exports = class Router extends Backbone.Router
 	###//--------------------------------------
 	//+ Route Handlers
 	//--------------------------------------###
-	showEvents: (events) =>
-		$( '#main-container' ).html( (new EventsView({model: events})).render().el )
-
 	home: ->
 		application.menuView.setSelectedItem('home')
 		$( '#menu-container' ).html( application.menuView.render().el )
 		$( '#main-container' ).html( (new HomeView()).render().el  )
-		#$( '#main-container' ).append( (new CitatView()).render().el )
 	history: ->
 		application.menuView.setSelectedItem('history')
 		$( '#menu-container' ).html( application.menuView.render().el )

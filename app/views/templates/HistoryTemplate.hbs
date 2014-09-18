@@ -4,7 +4,45 @@
 
 	Description: Template Description
 -->
-
-<div class='box orange' id="content">
-  <div id="name">{{content}}</div>
+<div class='row'>
+	<div class='box orange' id="content">
+	  <div id="name">{{content}}</div>
+	</div>
 </div>
+<div class='row' id='history-list'>
+	{{#each histories}}
+		{{#compare header "==" "Medlemmar"}}
+			<div class='one half orange box'>
+				{{#if header}}
+					<h3 class="black list-group-item-heading">{{header}}</h4>
+				{{/if}}
+				<div class='three sixth padded'>
+				{{#if subheader}}
+					<h4 class="black list-group-item-heading">{{subheader}}</h4>
+				{{/if}}
+				<div class="list-group-item">
+					{{{text}}}
+				</div>
+				
+			</div>
+			</div>
+		{{/compare}}
+		{{#compare header "!=" "Medlemmar"}}
+			<div class='one whole orange box'>
+				{{#if header}}
+					<h3 class="black list-group-item-heading">{{header}}</h4>
+				{{/if}}
+				{{#if subheader}}
+					<h4 class="red list-group-item-heading">{{subheader}}</h4>
+				{{/if}}
+				<div>
+					{{{text}}}
+				</div>
+				{{#if image}}
+					<img src="{{image}}" />
+				{{/if}}
+			</div>
+		{{/compare}}
+	{{/each}}
+</div>
+

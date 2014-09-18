@@ -1435,3009 +1435,6 @@
 }).call(this);
 
 ;/*!
- * Modernizr v2.6.3
- * www.modernizr.com
- *
- * Copyright (c) Faruk Ates, Paul Irish, Alex Sexton
- * Available under the BSD and MIT licenses: www.modernizr.com/license/
- */
-
-/*
- * Modernizr tests which native CSS3 and HTML5 features are available in
- * the current UA and makes the results available to you in two ways:
- * as properties on a global Modernizr object, and as classes on the
- * <html> element. This information allows you to progressively enhance
- * your pages with a granular level of control over the experience.
- *
- * Modernizr has an optional (not included) conditional resource loader
- * called Modernizr.load(), based on Yepnope.js (yepnopejs.com).
- * To get a build that includes Modernizr.load(), as well as choosing
- * which tests to include, go to www.modernizr.com/download/
- *
- * Authors        Faruk Ates, Paul Irish, Alex Sexton
- * Contributors   Ryan Seddon, Ben Alman
- */
-
-window.Modernizr = (function( window, document, undefined ) {
-
-    var version = '2.6.3',
-
-    Modernizr = {},
-
-    /*>>cssclasses*/
-    // option for enabling the HTML classes to be added
-    enableClasses = true,
-    /*>>cssclasses*/
-
-    docElement = document.documentElement,
-
-    /**
-     * Create our "modernizr" element that we do most feature tests on.
-     */
-    mod = 'modernizr',
-    modElem = document.createElement(mod),
-    mStyle = modElem.style,
-
-    /**
-     * Create the input element for various Web Forms feature tests.
-     */
-    inputElem /*>>inputelem*/ = document.createElement('input') /*>>inputelem*/ ,
-
-    /*>>smile*/
-    smile = ':)',
-    /*>>smile*/
-
-    toString = {}.toString,
-
-    // TODO :: make the prefixes more granular
-    /*>>prefixes*/
-    // List of property values to set for css tests. See ticket #21
-    prefixes = ' -webkit- -moz- -o- -ms- '.split(' '),
-    /*>>prefixes*/
-
-    /*>>domprefixes*/
-    // Following spec is to expose vendor-specific style properties as:
-    //   elem.style.WebkitBorderRadius
-    // and the following would be incorrect:
-    //   elem.style.webkitBorderRadius
-
-    // Webkit ghosts their properties in lowercase but Opera & Moz do not.
-    // Microsoft uses a lowercase `ms` instead of the correct `Ms` in IE8+
-    //   erik.eae.net/archives/2008/03/10/21.48.10/
-
-    // More here: github.com/Modernizr/Modernizr/issues/issue/21
-    omPrefixes = 'Webkit Moz O ms',
-
-    cssomPrefixes = omPrefixes.split(' '),
-
-    domPrefixes = omPrefixes.toLowerCase().split(' '),
-    /*>>domprefixes*/
-
-    /*>>ns*/
-    ns = {'svg': 'http://www.w3.org/2000/svg'},
-    /*>>ns*/
-
-    tests = {},
-    inputs = {},
-    attrs = {},
-
-    classes = [],
-
-    slice = classes.slice,
-
-    featureName, // used in testing loop
-
-
-    /*>>teststyles*/
-    // Inject element with style element and some CSS rules
-    injectElementWithStyles = function( rule, callback, nodes, testnames ) {
-
-      var style, ret, node, docOverflow,
-          div = document.createElement('div'),
-          // After page load injecting a fake body doesn't work so check if body exists
-          body = document.body,
-          // IE6 and 7 won't return offsetWidth or offsetHeight unless it's in the body element, so we fake it.
-          fakeBody = body || document.createElement('body');
-
-      if ( parseInt(nodes, 10) ) {
-          // In order not to give false positives we create a node for each test
-          // This also allows the method to scale for unspecified uses
-          while ( nodes-- ) {
-              node = document.createElement('div');
-              node.id = testnames ? testnames[nodes] : mod + (nodes + 1);
-              div.appendChild(node);
-          }
-      }
-
-      // <style> elements in IE6-9 are considered 'NoScope' elements and therefore will be removed
-      // when injected with innerHTML. To get around this you need to prepend the 'NoScope' element
-      // with a 'scoped' element, in our case the soft-hyphen entity as it won't mess with our measurements.
-      // msdn.microsoft.com/en-us/library/ms533897%28VS.85%29.aspx
-      // Documents served as xml will throw if using &shy; so use xml friendly encoded version. See issue #277
-      style = ['&#173;','<style id="s', mod, '">', rule, '</style>'].join('');
-      div.id = mod;
-      // IE6 will false positive on some tests due to the style element inside the test div somehow interfering offsetHeight, so insert it into body or fakebody.
-      // Opera will act all quirky when injecting elements in documentElement when page is served as xml, needs fakebody too. #270
-      (body ? div : fakeBody).innerHTML += style;
-      fakeBody.appendChild(div);
-      if ( !body ) {
-          //avoid crashing IE8, if background image is used
-          fakeBody.style.background = '';
-          //Safari 5.13/5.1.4 OSX stops loading if ::-webkit-scrollbar is used and scrollbars are visible
-          fakeBody.style.overflow = 'hidden';
-          docOverflow = docElement.style.overflow;
-          docElement.style.overflow = 'hidden';
-          docElement.appendChild(fakeBody);
-      }
-
-      ret = callback(div, rule);
-      // If this is done after page load we don't want to remove the body so check if body exists
-      if ( !body ) {
-          fakeBody.parentNode.removeChild(fakeBody);
-          docElement.style.overflow = docOverflow;
-      } else {
-          div.parentNode.removeChild(div);
-      }
-
-      return !!ret;
-
-    },
-    /*>>teststyles*/
-
-    /*>>mq*/
-    // adapted from matchMedia polyfill
-    // by Scott Jehl and Paul Irish
-    // gist.github.com/786768
-    testMediaQuery = function( mq ) {
-
-      var matchMedia = window.matchMedia || window.msMatchMedia;
-      if ( matchMedia ) {
-        return matchMedia(mq).matches;
-      }
-
-      var bool;
-
-      injectElementWithStyles('@media ' + mq + ' { #' + mod + ' { position: absolute; } }', function( node ) {
-        bool = (window.getComputedStyle ?
-                  getComputedStyle(node, null) :
-                  node.currentStyle)['position'] == 'absolute';
-      });
-
-      return bool;
-
-     },
-     /*>>mq*/
-
-
-    /*>>hasevent*/
-    //
-    // isEventSupported determines if a given element supports the given event
-    // kangax.github.com/iseventsupported/
-    //
-    // The following results are known incorrects:
-    //   Modernizr.hasEvent("webkitTransitionEnd", elem) // false negative
-    //   Modernizr.hasEvent("textInput") // in Webkit. github.com/Modernizr/Modernizr/issues/333
-    //   ...
-    isEventSupported = (function() {
-
-      var TAGNAMES = {
-        'select': 'input', 'change': 'input',
-        'submit': 'form', 'reset': 'form',
-        'error': 'img', 'load': 'img', 'abort': 'img'
-      };
-
-      function isEventSupported( eventName, element ) {
-
-        element = element || document.createElement(TAGNAMES[eventName] || 'div');
-        eventName = 'on' + eventName;
-
-        // When using `setAttribute`, IE skips "unload", WebKit skips "unload" and "resize", whereas `in` "catches" those
-        var isSupported = eventName in element;
-
-        if ( !isSupported ) {
-          // If it has no `setAttribute` (i.e. doesn't implement Node interface), try generic element
-          if ( !element.setAttribute ) {
-            element = document.createElement('div');
-          }
-          if ( element.setAttribute && element.removeAttribute ) {
-            element.setAttribute(eventName, '');
-            isSupported = is(element[eventName], 'function');
-
-            // If property was created, "remove it" (by setting value to `undefined`)
-            if ( !is(element[eventName], 'undefined') ) {
-              element[eventName] = undefined;
-            }
-            element.removeAttribute(eventName);
-          }
-        }
-
-        element = null;
-        return isSupported;
-      }
-      return isEventSupported;
-    })(),
-    /*>>hasevent*/
-
-    // TODO :: Add flag for hasownprop ? didn't last time
-
-    // hasOwnProperty shim by kangax needed for Safari 2.0 support
-    _hasOwnProperty = ({}).hasOwnProperty, hasOwnProp;
-
-    if ( !is(_hasOwnProperty, 'undefined') && !is(_hasOwnProperty.call, 'undefined') ) {
-      hasOwnProp = function (object, property) {
-        return _hasOwnProperty.call(object, property);
-      };
-    }
-    else {
-      hasOwnProp = function (object, property) { /* yes, this can give false positives/negatives, but most of the time we don't care about those */
-        return ((property in object) && is(object.constructor.prototype[property], 'undefined'));
-      };
-    }
-
-    // Adapted from ES5-shim https://github.com/kriskowal/es5-shim/blob/master/es5-shim.js
-    // es5.github.com/#x15.3.4.5
-
-    if (!Function.prototype.bind) {
-      Function.prototype.bind = function bind(that) {
-
-        var target = this;
-
-        if (typeof target != "function") {
-            throw new TypeError();
-        }
-
-        var args = slice.call(arguments, 1),
-            bound = function () {
-
-            if (this instanceof bound) {
-
-              var F = function(){};
-              F.prototype = target.prototype;
-              var self = new F();
-
-              var result = target.apply(
-                  self,
-                  args.concat(slice.call(arguments))
-              );
-              if (Object(result) === result) {
-                  return result;
-              }
-              return self;
-
-            } else {
-
-              return target.apply(
-                  that,
-                  args.concat(slice.call(arguments))
-              );
-
-            }
-
-        };
-
-        return bound;
-      };
-    }
-
-    /**
-     * setCss applies given styles to the Modernizr DOM node.
-     */
-    function setCss( str ) {
-        mStyle.cssText = str;
-    }
-
-    /**
-     * setCssAll extrapolates all vendor-specific css strings.
-     */
-    function setCssAll( str1, str2 ) {
-        return setCss(prefixes.join(str1 + ';') + ( str2 || '' ));
-    }
-
-    /**
-     * is returns a boolean for if typeof obj is exactly type.
-     */
-    function is( obj, type ) {
-        return typeof obj === type;
-    }
-
-    /**
-     * contains returns a boolean for if substr is found within str.
-     */
-    function contains( str, substr ) {
-        return !!~('' + str).indexOf(substr);
-    }
-
-    /*>>testprop*/
-
-    // testProps is a generic CSS / DOM property test.
-
-    // In testing support for a given CSS property, it's legit to test:
-    //    `elem.style[styleName] !== undefined`
-    // If the property is supported it will return an empty string,
-    // if unsupported it will return undefined.
-
-    // We'll take advantage of this quick test and skip setting a style
-    // on our modernizr element, but instead just testing undefined vs
-    // empty string.
-
-    // Because the testing of the CSS property names (with "-", as
-    // opposed to the camelCase DOM properties) is non-portable and
-    // non-standard but works in WebKit and IE (but not Gecko or Opera),
-    // we explicitly reject properties with dashes so that authors
-    // developing in WebKit or IE first don't end up with
-    // browser-specific content by accident.
-
-    function testProps( props, prefixed ) {
-        for ( var i in props ) {
-            var prop = props[i];
-            if ( !contains(prop, "-") && mStyle[prop] !== undefined ) {
-                return prefixed == 'pfx' ? prop : true;
-            }
-        }
-        return false;
-    }
-    /*>>testprop*/
-
-    // TODO :: add testDOMProps
-    /**
-     * testDOMProps is a generic DOM property test; if a browser supports
-     *   a certain property, it won't return undefined for it.
-     */
-    function testDOMProps( props, obj, elem ) {
-        for ( var i in props ) {
-            var item = obj[props[i]];
-            if ( item !== undefined) {
-
-                // return the property name as a string
-                if (elem === false) return props[i];
-
-                // let's bind a function
-                if (is(item, 'function')){
-                  // default to autobind unless override
-                  return item.bind(elem || obj);
-                }
-
-                // return the unbound function or obj or value
-                return item;
-            }
-        }
-        return false;
-    }
-
-    /*>>testallprops*/
-    /**
-     * testPropsAll tests a list of DOM properties we want to check against.
-     *   We specify literally ALL possible (known and/or likely) properties on
-     *   the element including the non-vendor prefixed one, for forward-
-     *   compatibility.
-     */
-    function testPropsAll( prop, prefixed, elem ) {
-
-        var ucProp  = prop.charAt(0).toUpperCase() + prop.slice(1),
-            props   = (prop + ' ' + cssomPrefixes.join(ucProp + ' ') + ucProp).split(' ');
-
-        // did they call .prefixed('boxSizing') or are we just testing a prop?
-        if(is(prefixed, "string") || is(prefixed, "undefined")) {
-          return testProps(props, prefixed);
-
-        // otherwise, they called .prefixed('requestAnimationFrame', window[, elem])
-        } else {
-          props = (prop + ' ' + (domPrefixes).join(ucProp + ' ') + ucProp).split(' ');
-          return testDOMProps(props, prefixed, elem);
-        }
-    }
-    /*>>testallprops*/
-
-
-    /**
-     * Tests
-     * -----
-     */
-
-    // The *new* flexbox
-    // dev.w3.org/csswg/css3-flexbox
-
-    tests['flexbox'] = function() {
-      return testPropsAll('flexWrap');
-    };
-
-    // The *old* flexbox
-    // www.w3.org/TR/2009/WD-css3-flexbox-20090723/
-
-    tests['flexboxlegacy'] = function() {
-        return testPropsAll('boxDirection');
-    };
-
-    // On the S60 and BB Storm, getContext exists, but always returns undefined
-    // so we actually have to call getContext() to verify
-    // github.com/Modernizr/Modernizr/issues/issue/97/
-
-    tests['canvas'] = function() {
-        var elem = document.createElement('canvas');
-        return !!(elem.getContext && elem.getContext('2d'));
-    };
-
-    tests['canvastext'] = function() {
-        return !!(Modernizr['canvas'] && is(document.createElement('canvas').getContext('2d').fillText, 'function'));
-    };
-
-    // webk.it/70117 is tracking a legit WebGL feature detect proposal
-
-    // We do a soft detect which may false positive in order to avoid
-    // an expensive context creation: bugzil.la/732441
-
-    tests['webgl'] = function() {
-        return !!window.WebGLRenderingContext;
-    };
-
-    /*
-     * The Modernizr.touch test only indicates if the browser supports
-     *    touch events, which does not necessarily reflect a touchscreen
-     *    device, as evidenced by tablets running Windows 7 or, alas,
-     *    the Palm Pre / WebOS (touch) phones.
-     *
-     * Additionally, Chrome (desktop) used to lie about its support on this,
-     *    but that has since been rectified: crbug.com/36415
-     *
-     * We also test for Firefox 4 Multitouch Support.
-     *
-     * For more info, see: modernizr.github.com/Modernizr/touch.html
-     */
-
-    tests['touch'] = function() {
-        var bool;
-
-        if(('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch) {
-          bool = true;
-        } else {
-          injectElementWithStyles(['@media (',prefixes.join('touch-enabled),('),mod,')','{#modernizr{top:9px;position:absolute}}'].join(''), function( node ) {
-            bool = node.offsetTop === 9;
-          });
-        }
-
-        return bool;
-    };
-
-
-    // geolocation is often considered a trivial feature detect...
-    // Turns out, it's quite tricky to get right:
-    //
-    // Using !!navigator.geolocation does two things we don't want. It:
-    //   1. Leaks memory in IE9: github.com/Modernizr/Modernizr/issues/513
-    //   2. Disables page caching in WebKit: webk.it/43956
-    //
-    // Meanwhile, in Firefox < 8, an about:config setting could expose
-    // a false positive that would throw an exception: bugzil.la/688158
-
-    tests['geolocation'] = function() {
-        return 'geolocation' in navigator;
-    };
-
-
-    tests['postmessage'] = function() {
-      return !!window.postMessage;
-    };
-
-
-    // Chrome incognito mode used to throw an exception when using openDatabase
-    // It doesn't anymore.
-    tests['websqldatabase'] = function() {
-      return !!window.openDatabase;
-    };
-
-    // Vendors had inconsistent prefixing with the experimental Indexed DB:
-    // - Webkit's implementation is accessible through webkitIndexedDB
-    // - Firefox shipped moz_indexedDB before FF4b9, but since then has been mozIndexedDB
-    // For speed, we don't test the legacy (and beta-only) indexedDB
-    tests['indexedDB'] = function() {
-      return !!testPropsAll("indexedDB", window);
-    };
-
-    // documentMode logic from YUI to filter out IE8 Compat Mode
-    //   which false positives.
-    tests['hashchange'] = function() {
-      return isEventSupported('hashchange', window) && (document.documentMode === undefined || document.documentMode > 7);
-    };
-
-    // Per 1.6:
-    // This used to be Modernizr.historymanagement but the longer
-    // name has been deprecated in favor of a shorter and property-matching one.
-    // The old API is still available in 1.6, but as of 2.0 will throw a warning,
-    // and in the first release thereafter disappear entirely.
-    tests['history'] = function() {
-      return !!(window.history && history.pushState);
-    };
-
-    tests['draganddrop'] = function() {
-        var div = document.createElement('div');
-        return ('draggable' in div) || ('ondragstart' in div && 'ondrop' in div);
-    };
-
-    // FF3.6 was EOL'ed on 4/24/12, but the ESR version of FF10
-    // will be supported until FF19 (2/12/13), at which time, ESR becomes FF17.
-    // FF10 still uses prefixes, so check for it until then.
-    // for more ESR info, see: mozilla.org/en-US/firefox/organizations/faq/
-    tests['websockets'] = function() {
-        return 'WebSocket' in window || 'MozWebSocket' in window;
-    };
-
-
-    // css-tricks.com/rgba-browser-support/
-    tests['rgba'] = function() {
-        // Set an rgba() color and check the returned value
-
-        setCss('background-color:rgba(150,255,150,.5)');
-
-        return contains(mStyle.backgroundColor, 'rgba');
-    };
-
-    tests['hsla'] = function() {
-        // Same as rgba(), in fact, browsers re-map hsla() to rgba() internally,
-        //   except IE9 who retains it as hsla
-
-        setCss('background-color:hsla(120,40%,100%,.5)');
-
-        return contains(mStyle.backgroundColor, 'rgba') || contains(mStyle.backgroundColor, 'hsla');
-    };
-
-    tests['multiplebgs'] = function() {
-        // Setting multiple images AND a color on the background shorthand property
-        //  and then querying the style.background property value for the number of
-        //  occurrences of "url(" is a reliable method for detecting ACTUAL support for this!
-
-        setCss('background:url(https://),url(https://),red url(https://)');
-
-        // If the UA supports multiple backgrounds, there should be three occurrences
-        //   of the string "url(" in the return value for elemStyle.background
-
-        return (/(url\s*\(.*?){3}/).test(mStyle.background);
-    };
-
-
-
-    // this will false positive in Opera Mini
-    //   github.com/Modernizr/Modernizr/issues/396
-
-    tests['backgroundsize'] = function() {
-        return testPropsAll('backgroundSize');
-    };
-
-    tests['borderimage'] = function() {
-        return testPropsAll('borderImage');
-    };
-
-
-    // Super comprehensive table about all the unique implementations of
-    // border-radius: muddledramblings.com/table-of-css3-border-radius-compliance
-
-    tests['borderradius'] = function() {
-        return testPropsAll('borderRadius');
-    };
-
-    // WebOS unfortunately false positives on this test.
-    tests['boxshadow'] = function() {
-        return testPropsAll('boxShadow');
-    };
-
-    // FF3.0 will false positive on this test
-    tests['textshadow'] = function() {
-        return document.createElement('div').style.textShadow === '';
-    };
-
-
-    tests['opacity'] = function() {
-        // Browsers that actually have CSS Opacity implemented have done so
-        //  according to spec, which means their return values are within the
-        //  range of [0.0,1.0] - including the leading zero.
-
-        setCssAll('opacity:.55');
-
-        // The non-literal . in this regex is intentional:
-        //   German Chrome returns this value as 0,55
-        // github.com/Modernizr/Modernizr/issues/#issue/59/comment/516632
-        return (/^0.55$/).test(mStyle.opacity);
-    };
-
-
-    // Note, Android < 4 will pass this test, but can only animate
-    //   a single property at a time
-    //   daneden.me/2011/12/putting-up-with-androids-bullshit/
-    tests['cssanimations'] = function() {
-        return testPropsAll('animationName');
-    };
-
-
-    tests['csscolumns'] = function() {
-        return testPropsAll('columnCount');
-    };
-
-
-    tests['cssgradients'] = function() {
-        /**
-         * For CSS Gradients syntax, please see:
-         * webkit.org/blog/175/introducing-css-gradients/
-         * developer.mozilla.org/en/CSS/-moz-linear-gradient
-         * developer.mozilla.org/en/CSS/-moz-radial-gradient
-         * dev.w3.org/csswg/css3-images/#gradients-
-         */
-
-        var str1 = 'background-image:',
-            str2 = 'gradient(linear,left top,right bottom,from(#9f9),to(white));',
-            str3 = 'linear-gradient(left top,#9f9, white);';
-
-        setCss(
-             // legacy webkit syntax (FIXME: remove when syntax not in use anymore)
-              (str1 + '-webkit- '.split(' ').join(str2 + str1) +
-             // standard syntax             // trailing 'background-image:'
-              prefixes.join(str3 + str1)).slice(0, -str1.length)
-        );
-
-        return contains(mStyle.backgroundImage, 'gradient');
-    };
-
-
-    tests['cssreflections'] = function() {
-        return testPropsAll('boxReflect');
-    };
-
-
-    tests['csstransforms'] = function() {
-        return !!testPropsAll('transform');
-    };
-
-
-    tests['csstransforms3d'] = function() {
-
-        var ret = !!testPropsAll('perspective');
-
-        // Webkit's 3D transforms are passed off to the browser's own graphics renderer.
-        //   It works fine in Safari on Leopard and Snow Leopard, but not in Chrome in
-        //   some conditions. As a result, Webkit typically recognizes the syntax but
-        //   will sometimes throw a false positive, thus we must do a more thorough check:
-        if ( ret && 'webkitPerspective' in docElement.style ) {
-
-          // Webkit allows this media query to succeed only if the feature is enabled.
-          // `@media (transform-3d),(-webkit-transform-3d){ ... }`
-          injectElementWithStyles('@media (transform-3d),(-webkit-transform-3d){#modernizr{left:9px;position:absolute;height:3px;}}', function( node, rule ) {
-            ret = node.offsetLeft === 9 && node.offsetHeight === 3;
-          });
-        }
-        return ret;
-    };
-
-
-    tests['csstransitions'] = function() {
-        return testPropsAll('transition');
-    };
-
-
-    /*>>fontface*/
-    // @font-face detection routine by Diego Perini
-    // javascript.nwbox.com/CSSSupport/
-
-    // false positives:
-    //   WebOS github.com/Modernizr/Modernizr/issues/342
-    //   WP7   github.com/Modernizr/Modernizr/issues/538
-    tests['fontface'] = function() {
-        var bool;
-
-        injectElementWithStyles('@font-face {font-family:"font";src:url("https://")}', function( node, rule ) {
-          var style = document.getElementById('smodernizr'),
-              sheet = style.sheet || style.styleSheet,
-              cssText = sheet ? (sheet.cssRules && sheet.cssRules[0] ? sheet.cssRules[0].cssText : sheet.cssText || '') : '';
-
-          bool = /src/i.test(cssText) && cssText.indexOf(rule.split(' ')[0]) === 0;
-        });
-
-        return bool;
-    };
-    /*>>fontface*/
-
-    // CSS generated content detection
-    tests['generatedcontent'] = function() {
-        var bool;
-
-        injectElementWithStyles(['#',mod,'{font:0/0 a}#',mod,':after{content:"',smile,'";visibility:hidden;font:3px/1 a}'].join(''), function( node ) {
-          bool = node.offsetHeight >= 3;
-        });
-
-        return bool;
-    };
-
-
-
-    // These tests evaluate support of the video/audio elements, as well as
-    // testing what types of content they support.
-    //
-    // We're using the Boolean constructor here, so that we can extend the value
-    // e.g.  Modernizr.video     // true
-    //       Modernizr.video.ogg // 'probably'
-    //
-    // Codec values from : github.com/NielsLeenheer/html5test/blob/9106a8/index.html#L845
-    //                     thx to NielsLeenheer and zcorpan
-
-    // Note: in some older browsers, "no" was a return value instead of empty string.
-    //   It was live in FF3.5.0 and 3.5.1, but fixed in 3.5.2
-    //   It was also live in Safari 4.0.0 - 4.0.4, but fixed in 4.0.5
-
-    tests['video'] = function() {
-        var elem = document.createElement('video'),
-            bool = false;
-
-        // IE9 Running on Windows Server SKU can cause an exception to be thrown, bug #224
-        try {
-            if ( bool = !!elem.canPlayType ) {
-                bool      = new Boolean(bool);
-                bool.ogg  = elem.canPlayType('video/ogg; codecs="theora"')      .replace(/^no$/,'');
-
-                // Without QuickTime, this value will be `undefined`. github.com/Modernizr/Modernizr/issues/546
-                bool.h264 = elem.canPlayType('video/mp4; codecs="avc1.42E01E"') .replace(/^no$/,'');
-
-                bool.webm = elem.canPlayType('video/webm; codecs="vp8, vorbis"').replace(/^no$/,'');
-            }
-
-        } catch(e) { }
-
-        return bool;
-    };
-
-    tests['audio'] = function() {
-        var elem = document.createElement('audio'),
-            bool = false;
-
-        try {
-            if ( bool = !!elem.canPlayType ) {
-                bool      = new Boolean(bool);
-                bool.ogg  = elem.canPlayType('audio/ogg; codecs="vorbis"').replace(/^no$/,'');
-                bool.mp3  = elem.canPlayType('audio/mpeg;')               .replace(/^no$/,'');
-
-                // Mimetypes accepted:
-                //   developer.mozilla.org/En/Media_formats_supported_by_the_audio_and_video_elements
-                //   bit.ly/iphoneoscodecs
-                bool.wav  = elem.canPlayType('audio/wav; codecs="1"')     .replace(/^no$/,'');
-                bool.m4a  = ( elem.canPlayType('audio/x-m4a;')            ||
-                              elem.canPlayType('audio/aac;'))             .replace(/^no$/,'');
-            }
-        } catch(e) { }
-
-        return bool;
-    };
-
-
-    // In FF4, if disabled, window.localStorage should === null.
-
-    // Normally, we could not test that directly and need to do a
-    //   `('localStorage' in window) && ` test first because otherwise Firefox will
-    //   throw bugzil.la/365772 if cookies are disabled
-
-    // Also in iOS5 Private Browsing mode, attempting to use localStorage.setItem
-    // will throw the exception:
-    //   QUOTA_EXCEEDED_ERRROR DOM Exception 22.
-    // Peculiarly, getItem and removeItem calls do not throw.
-
-    // Because we are forced to try/catch this, we'll go aggressive.
-
-    // Just FWIW: IE8 Compat mode supports these features completely:
-    //   www.quirksmode.org/dom/html5.html
-    // But IE8 doesn't support either with local files
-
-    tests['localstorage'] = function() {
-        try {
-            localStorage.setItem(mod, mod);
-            localStorage.removeItem(mod);
-            return true;
-        } catch(e) {
-            return false;
-        }
-    };
-
-    tests['sessionstorage'] = function() {
-        try {
-            sessionStorage.setItem(mod, mod);
-            sessionStorage.removeItem(mod);
-            return true;
-        } catch(e) {
-            return false;
-        }
-    };
-
-
-    tests['webworkers'] = function() {
-        return !!window.Worker;
-    };
-
-
-    tests['applicationcache'] = function() {
-        return !!window.applicationCache;
-    };
-
-
-    // Thanks to Erik Dahlstrom
-    tests['svg'] = function() {
-        return !!document.createElementNS && !!document.createElementNS(ns.svg, 'svg').createSVGRect;
-    };
-
-    // specifically for SVG inline in HTML, not within XHTML
-    // test page: paulirish.com/demo/inline-svg
-    tests['inlinesvg'] = function() {
-      var div = document.createElement('div');
-      div.innerHTML = '<svg/>';
-      return (div.firstChild && div.firstChild.namespaceURI) == ns.svg;
-    };
-
-    // SVG SMIL animation
-    tests['smil'] = function() {
-        return !!document.createElementNS && /SVGAnimate/.test(toString.call(document.createElementNS(ns.svg, 'animate')));
-    };
-
-    // This test is only for clip paths in SVG proper, not clip paths on HTML content
-    // demo: srufaculty.sru.edu/david.dailey/svg/newstuff/clipPath4.svg
-
-    // However read the comments to dig into applying SVG clippaths to HTML content here:
-    //   github.com/Modernizr/Modernizr/issues/213#issuecomment-1149491
-    tests['svgclippaths'] = function() {
-        return !!document.createElementNS && /SVGClipPath/.test(toString.call(document.createElementNS(ns.svg, 'clipPath')));
-    };
-
-    /*>>webforms*/
-    // input features and input types go directly onto the ret object, bypassing the tests loop.
-    // Hold this guy to execute in a moment.
-    function webforms() {
-        /*>>input*/
-        // Run through HTML5's new input attributes to see if the UA understands any.
-        // We're using f which is the <input> element created early on
-        // Mike Taylr has created a comprehensive resource for testing these attributes
-        //   when applied to all input types:
-        //   miketaylr.com/code/input-type-attr.html
-        // spec: www.whatwg.org/specs/web-apps/current-work/multipage/the-input-element.html#input-type-attr-summary
-
-        // Only input placeholder is tested while textarea's placeholder is not.
-        // Currently Safari 4 and Opera 11 have support only for the input placeholder
-        // Both tests are available in feature-detects/forms-placeholder.js
-        Modernizr['input'] = (function( props ) {
-            for ( var i = 0, len = props.length; i < len; i++ ) {
-                attrs[ props[i] ] = !!(props[i] in inputElem);
-            }
-            if (attrs.list){
-              // safari false positive's on datalist: webk.it/74252
-              // see also github.com/Modernizr/Modernizr/issues/146
-              attrs.list = !!(document.createElement('datalist') && window.HTMLDataListElement);
-            }
-            return attrs;
-        })('autocomplete autofocus list placeholder max min multiple pattern required step'.split(' '));
-        /*>>input*/
-
-        /*>>inputtypes*/
-        // Run through HTML5's new input types to see if the UA understands any.
-        //   This is put behind the tests runloop because it doesn't return a
-        //   true/false like all the other tests; instead, it returns an object
-        //   containing each input type with its corresponding true/false value
-
-        // Big thanks to @miketaylr for the html5 forms expertise. miketaylr.com/
-        Modernizr['inputtypes'] = (function(props) {
-
-            for ( var i = 0, bool, inputElemType, defaultView, len = props.length; i < len; i++ ) {
-
-                inputElem.setAttribute('type', inputElemType = props[i]);
-                bool = inputElem.type !== 'text';
-
-                // We first check to see if the type we give it sticks..
-                // If the type does, we feed it a textual value, which shouldn't be valid.
-                // If the value doesn't stick, we know there's input sanitization which infers a custom UI
-                if ( bool ) {
-
-                    inputElem.value         = smile;
-                    inputElem.style.cssText = 'position:absolute;visibility:hidden;';
-
-                    if ( /^range$/.test(inputElemType) && inputElem.style.WebkitAppearance !== undefined ) {
-
-                      docElement.appendChild(inputElem);
-                      defaultView = document.defaultView;
-
-                      // Safari 2-4 allows the smiley as a value, despite making a slider
-                      bool =  defaultView.getComputedStyle &&
-                              defaultView.getComputedStyle(inputElem, null).WebkitAppearance !== 'textfield' &&
-                              // Mobile android web browser has false positive, so must
-                              // check the height to see if the widget is actually there.
-                              (inputElem.offsetHeight !== 0);
-
-                      docElement.removeChild(inputElem);
-
-                    } else if ( /^(search|tel)$/.test(inputElemType) ){
-                      // Spec doesn't define any special parsing or detectable UI
-                      //   behaviors so we pass these through as true
-
-                      // Interestingly, opera fails the earlier test, so it doesn't
-                      //  even make it here.
-
-                    } else if ( /^(url|email)$/.test(inputElemType) ) {
-                      // Real url and email support comes with prebaked validation.
-                      bool = inputElem.checkValidity && inputElem.checkValidity() === false;
-
-                    } else {
-                      // If the upgraded input compontent rejects the :) text, we got a winner
-                      bool = inputElem.value != smile;
-                    }
-                }
-
-                inputs[ props[i] ] = !!bool;
-            }
-            return inputs;
-        })('search tel url email datetime date month week time datetime-local number range color'.split(' '));
-        /*>>inputtypes*/
-    }
-    /*>>webforms*/
-
-
-    // End of test definitions
-    // -----------------------
-
-
-
-    // Run through all tests and detect their support in the current UA.
-    // todo: hypothetically we could be doing an array of tests and use a basic loop here.
-    for ( var feature in tests ) {
-        if ( hasOwnProp(tests, feature) ) {
-            // run the test, throw the return value into the Modernizr,
-            //   then based on that boolean, define an appropriate className
-            //   and push it into an array of classes we'll join later.
-            featureName  = feature.toLowerCase();
-            Modernizr[featureName] = tests[feature]();
-
-            classes.push((Modernizr[featureName] ? '' : 'no-') + featureName);
-        }
-    }
-
-    /*>>webforms*/
-    // input tests need to run.
-    Modernizr.input || webforms();
-    /*>>webforms*/
-
-
-    /**
-     * addTest allows the user to define their own feature tests
-     * the result will be added onto the Modernizr object,
-     * as well as an appropriate className set on the html element
-     *
-     * @param feature - String naming the feature
-     * @param test - Function returning true if feature is supported, false if not
-     */
-     Modernizr.addTest = function ( feature, test ) {
-       if ( typeof feature == 'object' ) {
-         for ( var key in feature ) {
-           if ( hasOwnProp( feature, key ) ) {
-             Modernizr.addTest( key, feature[ key ] );
-           }
-         }
-       } else {
-
-         feature = feature.toLowerCase();
-
-         if ( Modernizr[feature] !== undefined ) {
-           // we're going to quit if you're trying to overwrite an existing test
-           // if we were to allow it, we'd do this:
-           //   var re = new RegExp("\\b(no-)?" + feature + "\\b");
-           //   docElement.className = docElement.className.replace( re, '' );
-           // but, no rly, stuff 'em.
-           return Modernizr;
-         }
-
-         test = typeof test == 'function' ? test() : test;
-
-         if (typeof enableClasses !== "undefined" && enableClasses) {
-           docElement.className += ' ' + (test ? '' : 'no-') + feature;
-         }
-         Modernizr[feature] = test;
-
-       }
-
-       return Modernizr; // allow chaining.
-     };
-
-
-    // Reset modElem.cssText to nothing to reduce memory footprint.
-    setCss('');
-    modElem = inputElem = null;
-
-    /*>>shiv*/
-    /*! HTML5 Shiv v3.6.1 | @afarkas @jdalton @jon_neal @rem | MIT/GPL2 Licensed */
-    ;(function(window, document) {
-    /*jshint evil:true */
-      /** Preset options */
-      var options = window.html5 || {};
-
-      /** Used to skip problem elements */
-      var reSkip = /^<|^(?:button|map|select|textarea|object|iframe|option|optgroup)$/i;
-
-      /** Not all elements can be cloned in IE **/
-      var saveClones = /^(?:a|b|code|div|fieldset|h1|h2|h3|h4|h5|h6|i|label|li|ol|p|q|span|strong|style|table|tbody|td|th|tr|ul)$/i;
-
-      /** Detect whether the browser supports default html5 styles */
-      var supportsHtml5Styles;
-
-      /** Name of the expando, to work with multiple documents or to re-shiv one document */
-      var expando = '_html5shiv';
-
-      /** The id for the the documents expando */
-      var expanID = 0;
-
-      /** Cached data for each document */
-      var expandoData = {};
-
-      /** Detect whether the browser supports unknown elements */
-      var supportsUnknownElements;
-
-      (function() {
-        try {
-            var a = document.createElement('a');
-            a.innerHTML = '<xyz></xyz>';
-            //if the hidden property is implemented we can assume, that the browser supports basic HTML5 Styles
-            supportsHtml5Styles = ('hidden' in a);
-
-            supportsUnknownElements = a.childNodes.length == 1 || (function() {
-              // assign a false positive if unable to shiv
-              (document.createElement)('a');
-              var frag = document.createDocumentFragment();
-              return (
-                typeof frag.cloneNode == 'undefined' ||
-                typeof frag.createDocumentFragment == 'undefined' ||
-                typeof frag.createElement == 'undefined'
-              );
-            }());
-        } catch(e) {
-          supportsHtml5Styles = true;
-          supportsUnknownElements = true;
-        }
-
-      }());
-
-      /*--------------------------------------------------------------------------*/
-
-      /**
-       * Creates a style sheet with the given CSS text and adds it to the document.
-       * @private
-       * @param {Document} ownerDocument The document.
-       * @param {String} cssText The CSS text.
-       * @returns {StyleSheet} The style element.
-       */
-      function addStyleSheet(ownerDocument, cssText) {
-        var p = ownerDocument.createElement('p'),
-            parent = ownerDocument.getElementsByTagName('head')[0] || ownerDocument.documentElement;
-
-        p.innerHTML = 'x<style>' + cssText + '</style>';
-        return parent.insertBefore(p.lastChild, parent.firstChild);
-      }
-
-      /**
-       * Returns the value of `html5.elements` as an array.
-       * @private
-       * @returns {Array} An array of shived element node names.
-       */
-      function getElements() {
-        var elements = html5.elements;
-        return typeof elements == 'string' ? elements.split(' ') : elements;
-      }
-
-        /**
-       * Returns the data associated to the given document
-       * @private
-       * @param {Document} ownerDocument The document.
-       * @returns {Object} An object of data.
-       */
-      function getExpandoData(ownerDocument) {
-        var data = expandoData[ownerDocument[expando]];
-        if (!data) {
-            data = {};
-            expanID++;
-            ownerDocument[expando] = expanID;
-            expandoData[expanID] = data;
-        }
-        return data;
-      }
-
-      /**
-       * returns a shived element for the given nodeName and document
-       * @memberOf html5
-       * @param {String} nodeName name of the element
-       * @param {Document} ownerDocument The context document.
-       * @returns {Object} The shived element.
-       */
-      function createElement(nodeName, ownerDocument, data){
-        if (!ownerDocument) {
-            ownerDocument = document;
-        }
-        if(supportsUnknownElements){
-            return ownerDocument.createElement(nodeName);
-        }
-        if (!data) {
-            data = getExpandoData(ownerDocument);
-        }
-        var node;
-
-        if (data.cache[nodeName]) {
-            node = data.cache[nodeName].cloneNode();
-        } else if (saveClones.test(nodeName)) {
-            node = (data.cache[nodeName] = data.createElem(nodeName)).cloneNode();
-        } else {
-            node = data.createElem(nodeName);
-        }
-
-        // Avoid adding some elements to fragments in IE < 9 because
-        // * Attributes like `name` or `type` cannot be set/changed once an element
-        //   is inserted into a document/fragment
-        // * Link elements with `src` attributes that are inaccessible, as with
-        //   a 403 response, will cause the tab/window to crash
-        // * Script elements appended to fragments will execute when their `src`
-        //   or `text` property is set
-        return node.canHaveChildren && !reSkip.test(nodeName) ? data.frag.appendChild(node) : node;
-      }
-
-      /**
-       * returns a shived DocumentFragment for the given document
-       * @memberOf html5
-       * @param {Document} ownerDocument The context document.
-       * @returns {Object} The shived DocumentFragment.
-       */
-      function createDocumentFragment(ownerDocument, data){
-        if (!ownerDocument) {
-            ownerDocument = document;
-        }
-        if(supportsUnknownElements){
-            return ownerDocument.createDocumentFragment();
-        }
-        data = data || getExpandoData(ownerDocument);
-        var clone = data.frag.cloneNode(),
-            i = 0,
-            elems = getElements(),
-            l = elems.length;
-        for(;i<l;i++){
-            clone.createElement(elems[i]);
-        }
-        return clone;
-      }
-
-      /**
-       * Shivs the `createElement` and `createDocumentFragment` methods of the document.
-       * @private
-       * @param {Document|DocumentFragment} ownerDocument The document.
-       * @param {Object} data of the document.
-       */
-      function shivMethods(ownerDocument, data) {
-        if (!data.cache) {
-            data.cache = {};
-            data.createElem = ownerDocument.createElement;
-            data.createFrag = ownerDocument.createDocumentFragment;
-            data.frag = data.createFrag();
-        }
-
-
-        ownerDocument.createElement = function(nodeName) {
-          //abort shiv
-          if (!html5.shivMethods) {
-              return data.createElem(nodeName);
-          }
-          return createElement(nodeName, ownerDocument, data);
-        };
-
-        ownerDocument.createDocumentFragment = Function('h,f', 'return function(){' +
-          'var n=f.cloneNode(),c=n.createElement;' +
-          'h.shivMethods&&(' +
-            // unroll the `createElement` calls
-            getElements().join().replace(/\w+/g, function(nodeName) {
-              data.createElem(nodeName);
-              data.frag.createElement(nodeName);
-              return 'c("' + nodeName + '")';
-            }) +
-          ');return n}'
-        )(html5, data.frag);
-      }
-
-      /*--------------------------------------------------------------------------*/
-
-      /**
-       * Shivs the given document.
-       * @memberOf html5
-       * @param {Document} ownerDocument The document to shiv.
-       * @returns {Document} The shived document.
-       */
-      function shivDocument(ownerDocument) {
-        if (!ownerDocument) {
-            ownerDocument = document;
-        }
-        var data = getExpandoData(ownerDocument);
-
-        if (html5.shivCSS && !supportsHtml5Styles && !data.hasCSS) {
-          data.hasCSS = !!addStyleSheet(ownerDocument,
-            // corrects block display not defined in IE6/7/8/9
-            'article,aside,figcaption,figure,footer,header,hgroup,nav,section{display:block}' +
-            // adds styling not present in IE6/7/8/9
-            'mark{background:#FF0;color:#000}'
-          );
-        }
-        if (!supportsUnknownElements) {
-          shivMethods(ownerDocument, data);
-        }
-        return ownerDocument;
-      }
-
-      /*--------------------------------------------------------------------------*/
-
-      /**
-       * The `html5` object is exposed so that more elements can be shived and
-       * existing shiving can be detected on iframes.
-       * @type Object
-       * @example
-       *
-       * // options can be changed before the script is included
-       * html5 = { 'elements': 'mark section', 'shivCSS': false, 'shivMethods': false };
-       */
-      var html5 = {
-
-        /**
-         * An array or space separated string of node names of the elements to shiv.
-         * @memberOf html5
-         * @type Array|String
-         */
-        'elements': options.elements || 'abbr article aside audio bdi canvas data datalist details figcaption figure footer header hgroup mark meter nav output progress section summary time video',
-
-        /**
-         * A flag to indicate that the HTML5 style sheet should be inserted.
-         * @memberOf html5
-         * @type Boolean
-         */
-        'shivCSS': (options.shivCSS !== false),
-
-        /**
-         * Is equal to true if a browser supports creating unknown/HTML5 elements
-         * @memberOf html5
-         * @type boolean
-         */
-        'supportsUnknownElements': supportsUnknownElements,
-
-        /**
-         * A flag to indicate that the document's `createElement` and `createDocumentFragment`
-         * methods should be overwritten.
-         * @memberOf html5
-         * @type Boolean
-         */
-        'shivMethods': (options.shivMethods !== false),
-
-        /**
-         * A string to describe the type of `html5` object ("default" or "default print").
-         * @memberOf html5
-         * @type String
-         */
-        'type': 'default',
-
-        // shivs the document according to the specified `html5` object options
-        'shivDocument': shivDocument,
-
-        //creates a shived element
-        createElement: createElement,
-
-        //creates a shived documentFragment
-        createDocumentFragment: createDocumentFragment
-      };
-
-      /*--------------------------------------------------------------------------*/
-
-      // expose html5
-      window.html5 = html5;
-
-      // shiv the document
-      shivDocument(document);
-
-    }(this, document));
-    /*>>shiv*/
-
-    // Assign private properties to the return object with prefix
-    Modernizr._version      = version;
-
-    // expose these for the plugin API. Look in the source for how to join() them against your input
-    /*>>prefixes*/
-    Modernizr._prefixes     = prefixes;
-    /*>>prefixes*/
-    /*>>domprefixes*/
-    Modernizr._domPrefixes  = domPrefixes;
-    Modernizr._cssomPrefixes  = cssomPrefixes;
-    /*>>domprefixes*/
-
-    /*>>mq*/
-    // Modernizr.mq tests a given media query, live against the current state of the window
-    // A few important notes:
-    //   * If a browser does not support media queries at all (eg. oldIE) the mq() will always return false
-    //   * A max-width or orientation query will be evaluated against the current state, which may change later.
-    //   * You must specify values. Eg. If you are testing support for the min-width media query use:
-    //       Modernizr.mq('(min-width:0)')
-    // usage:
-    // Modernizr.mq('only screen and (max-width:768)')
-    Modernizr.mq            = testMediaQuery;
-    /*>>mq*/
-
-    /*>>hasevent*/
-    // Modernizr.hasEvent() detects support for a given event, with an optional element to test on
-    // Modernizr.hasEvent('gesturestart', elem)
-    Modernizr.hasEvent      = isEventSupported;
-    /*>>hasevent*/
-
-    /*>>testprop*/
-    // Modernizr.testProp() investigates whether a given style property is recognized
-    // Note that the property names must be provided in the camelCase variant.
-    // Modernizr.testProp('pointerEvents')
-    Modernizr.testProp      = function(prop){
-        return testProps([prop]);
-    };
-    /*>>testprop*/
-
-    /*>>testallprops*/
-    // Modernizr.testAllProps() investigates whether a given style property,
-    //   or any of its vendor-prefixed variants, is recognized
-    // Note that the property names must be provided in the camelCase variant.
-    // Modernizr.testAllProps('boxSizing')
-    Modernizr.testAllProps  = testPropsAll;
-    /*>>testallprops*/
-
-
-    /*>>teststyles*/
-    // Modernizr.testStyles() allows you to add custom styles to the document and test an element afterwards
-    // Modernizr.testStyles('#modernizr { position:absolute }', function(elem, rule){ ... })
-    Modernizr.testStyles    = injectElementWithStyles;
-    /*>>teststyles*/
-
-
-    /*>>prefixed*/
-    // Modernizr.prefixed() returns the prefixed or nonprefixed property name variant of your input
-    // Modernizr.prefixed('boxSizing') // 'MozBoxSizing'
-
-    // Properties must be passed as dom-style camelcase, rather than `box-sizing` hypentated style.
-    // Return values will also be the camelCase variant, if you need to translate that to hypenated style use:
-    //
-    //     str.replace(/([A-Z])/g, function(str,m1){ return '-' + m1.toLowerCase(); }).replace(/^ms-/,'-ms-');
-
-    // If you're trying to ascertain which transition end event to bind to, you might do something like...
-    //
-    //     var transEndEventNames = {
-    //       'WebkitTransition' : 'webkitTransitionEnd',
-    //       'MozTransition'    : 'transitionend',
-    //       'OTransition'      : 'oTransitionEnd',
-    //       'msTransition'     : 'MSTransitionEnd',
-    //       'transition'       : 'transitionend'
-    //     },
-    //     transEndEventName = transEndEventNames[ Modernizr.prefixed('transition') ];
-
-    Modernizr.prefixed      = function(prop, obj, elem){
-      if(!obj) {
-        return testPropsAll(prop, 'pfx');
-      } else {
-        // Testing DOM property e.g. Modernizr.prefixed('requestAnimationFrame', window) // 'mozRequestAnimationFrame'
-        return testPropsAll(prop, obj, elem);
-      }
-    };
-    /*>>prefixed*/
-
-
-    /*>>cssclasses*/
-    // Remove "no-js" class from <html> element, if it exists:
-    docElement.className = docElement.className.replace(/(^|\s)no-js(\s|$)/, '$1$2') +
-
-                            // Add the new classes to the <html> element.
-                            (enableClasses ? ' js ' + classes.join(' ') : '');
-    /*>>cssclasses*/
-
-    return Modernizr;
-
-})(this, this.document);
-
-;//     Backbone.js 1.1.2
-
-//     (c) 2010-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-//     Backbone may be freely distributed under the MIT license.
-//     For all details and documentation:
-//     http://backbonejs.org
-
-(function(root, factory) {
-
-  // Set up Backbone appropriately for the environment. Start with AMD.
-  if (typeof define === 'function' && define.amd) {
-    define(['underscore', 'jquery', 'exports'], function(_, $, exports) {
-      // Export global even in AMD case in case this script is loaded with
-      // others that may still expect a global Backbone.
-      root.Backbone = factory(root, exports, _, $);
-    });
-
-  // Next for Node.js or CommonJS. jQuery may not be needed as a module.
-  } else if (typeof exports !== 'undefined') {
-    var _ = require('underscore');
-    factory(root, exports, _);
-
-  // Finally, as a browser global.
-  } else {
-    root.Backbone = factory(root, {}, root._, (root.jQuery || root.Zepto || root.ender || root.$));
-  }
-
-}(this, function(root, Backbone, _, $) {
-
-  // Initial Setup
-  // -------------
-
-  // Save the previous value of the `Backbone` variable, so that it can be
-  // restored later on, if `noConflict` is used.
-  var previousBackbone = root.Backbone;
-
-  // Create local references to array methods we'll want to use later.
-  var array = [];
-  var push = array.push;
-  var slice = array.slice;
-  var splice = array.splice;
-
-  // Current version of the library. Keep in sync with `package.json`.
-  Backbone.VERSION = '1.1.2';
-
-  // For Backbone's purposes, jQuery, Zepto, Ender, or My Library (kidding) owns
-  // the `$` variable.
-  Backbone.$ = $;
-
-  // Runs Backbone.js in *noConflict* mode, returning the `Backbone` variable
-  // to its previous owner. Returns a reference to this Backbone object.
-  Backbone.noConflict = function() {
-    root.Backbone = previousBackbone;
-    return this;
-  };
-
-  // Turn on `emulateHTTP` to support legacy HTTP servers. Setting this option
-  // will fake `"PATCH"`, `"PUT"` and `"DELETE"` requests via the `_method` parameter and
-  // set a `X-Http-Method-Override` header.
-  Backbone.emulateHTTP = false;
-
-  // Turn on `emulateJSON` to support legacy servers that can't deal with direct
-  // `application/json` requests ... will encode the body as
-  // `application/x-www-form-urlencoded` instead and will send the model in a
-  // form param named `model`.
-  Backbone.emulateJSON = false;
-
-  // Backbone.Events
-  // ---------------
-
-  // A module that can be mixed in to *any object* in order to provide it with
-  // custom events. You may bind with `on` or remove with `off` callback
-  // functions to an event; `trigger`-ing an event fires all callbacks in
-  // succession.
-  //
-  //     var object = {};
-  //     _.extend(object, Backbone.Events);
-  //     object.on('expand', function(){ alert('expanded'); });
-  //     object.trigger('expand');
-  //
-  var Events = Backbone.Events = {
-
-    // Bind an event to a `callback` function. Passing `"all"` will bind
-    // the callback to all events fired.
-    on: function(name, callback, context) {
-      if (!eventsApi(this, 'on', name, [callback, context]) || !callback) return this;
-      this._events || (this._events = {});
-      var events = this._events[name] || (this._events[name] = []);
-      events.push({callback: callback, context: context, ctx: context || this});
-      return this;
-    },
-
-    // Bind an event to only be triggered a single time. After the first time
-    // the callback is invoked, it will be removed.
-    once: function(name, callback, context) {
-      if (!eventsApi(this, 'once', name, [callback, context]) || !callback) return this;
-      var self = this;
-      var once = _.once(function() {
-        self.off(name, once);
-        callback.apply(this, arguments);
-      });
-      once._callback = callback;
-      return this.on(name, once, context);
-    },
-
-    // Remove one or many callbacks. If `context` is null, removes all
-    // callbacks with that function. If `callback` is null, removes all
-    // callbacks for the event. If `name` is null, removes all bound
-    // callbacks for all events.
-    off: function(name, callback, context) {
-      var retain, ev, events, names, i, l, j, k;
-      if (!this._events || !eventsApi(this, 'off', name, [callback, context])) return this;
-      if (!name && !callback && !context) {
-        this._events = void 0;
-        return this;
-      }
-      names = name ? [name] : _.keys(this._events);
-      for (i = 0, l = names.length; i < l; i++) {
-        name = names[i];
-        if (events = this._events[name]) {
-          this._events[name] = retain = [];
-          if (callback || context) {
-            for (j = 0, k = events.length; j < k; j++) {
-              ev = events[j];
-              if ((callback && callback !== ev.callback && callback !== ev.callback._callback) ||
-                  (context && context !== ev.context)) {
-                retain.push(ev);
-              }
-            }
-          }
-          if (!retain.length) delete this._events[name];
-        }
-      }
-
-      return this;
-    },
-
-    // Trigger one or many events, firing all bound callbacks. Callbacks are
-    // passed the same arguments as `trigger` is, apart from the event name
-    // (unless you're listening on `"all"`, which will cause your callback to
-    // receive the true name of the event as the first argument).
-    trigger: function(name) {
-      if (!this._events) return this;
-      var args = slice.call(arguments, 1);
-      if (!eventsApi(this, 'trigger', name, args)) return this;
-      var events = this._events[name];
-      var allEvents = this._events.all;
-      if (events) triggerEvents(events, args);
-      if (allEvents) triggerEvents(allEvents, arguments);
-      return this;
-    },
-
-    // Tell this object to stop listening to either specific events ... or
-    // to every object it's currently listening to.
-    stopListening: function(obj, name, callback) {
-      var listeningTo = this._listeningTo;
-      if (!listeningTo) return this;
-      var remove = !name && !callback;
-      if (!callback && typeof name === 'object') callback = this;
-      if (obj) (listeningTo = {})[obj._listenId] = obj;
-      for (var id in listeningTo) {
-        obj = listeningTo[id];
-        obj.off(name, callback, this);
-        if (remove || _.isEmpty(obj._events)) delete this._listeningTo[id];
-      }
-      return this;
-    }
-
-  };
-
-  // Regular expression used to split event strings.
-  var eventSplitter = /\s+/;
-
-  // Implement fancy features of the Events API such as multiple event
-  // names `"change blur"` and jQuery-style event maps `{change: action}`
-  // in terms of the existing API.
-  var eventsApi = function(obj, action, name, rest) {
-    if (!name) return true;
-
-    // Handle event maps.
-    if (typeof name === 'object') {
-      for (var key in name) {
-        obj[action].apply(obj, [key, name[key]].concat(rest));
-      }
-      return false;
-    }
-
-    // Handle space separated event names.
-    if (eventSplitter.test(name)) {
-      var names = name.split(eventSplitter);
-      for (var i = 0, l = names.length; i < l; i++) {
-        obj[action].apply(obj, [names[i]].concat(rest));
-      }
-      return false;
-    }
-
-    return true;
-  };
-
-  // A difficult-to-believe, but optimized internal dispatch function for
-  // triggering events. Tries to keep the usual cases speedy (most internal
-  // Backbone events have 3 arguments).
-  var triggerEvents = function(events, args) {
-    var ev, i = -1, l = events.length, a1 = args[0], a2 = args[1], a3 = args[2];
-    switch (args.length) {
-      case 0: while (++i < l) (ev = events[i]).callback.call(ev.ctx); return;
-      case 1: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1); return;
-      case 2: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2); return;
-      case 3: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2, a3); return;
-      default: while (++i < l) (ev = events[i]).callback.apply(ev.ctx, args); return;
-    }
-  };
-
-  var listenMethods = {listenTo: 'on', listenToOnce: 'once'};
-
-  // Inversion-of-control versions of `on` and `once`. Tell *this* object to
-  // listen to an event in another object ... keeping track of what it's
-  // listening to.
-  _.each(listenMethods, function(implementation, method) {
-    Events[method] = function(obj, name, callback) {
-      var listeningTo = this._listeningTo || (this._listeningTo = {});
-      var id = obj._listenId || (obj._listenId = _.uniqueId('l'));
-      listeningTo[id] = obj;
-      if (!callback && typeof name === 'object') callback = this;
-      obj[implementation](name, callback, this);
-      return this;
-    };
-  });
-
-  // Aliases for backwards compatibility.
-  Events.bind   = Events.on;
-  Events.unbind = Events.off;
-
-  // Allow the `Backbone` object to serve as a global event bus, for folks who
-  // want global "pubsub" in a convenient place.
-  _.extend(Backbone, Events);
-
-  // Backbone.Model
-  // --------------
-
-  // Backbone **Models** are the basic data object in the framework --
-  // frequently representing a row in a table in a database on your server.
-  // A discrete chunk of data and a bunch of useful, related methods for
-  // performing computations and transformations on that data.
-
-  // Create a new model with the specified attributes. A client id (`cid`)
-  // is automatically generated and assigned for you.
-  var Model = Backbone.Model = function(attributes, options) {
-    var attrs = attributes || {};
-    options || (options = {});
-    this.cid = _.uniqueId('c');
-    this.attributes = {};
-    if (options.collection) this.collection = options.collection;
-    if (options.parse) attrs = this.parse(attrs, options) || {};
-    attrs = _.defaults({}, attrs, _.result(this, 'defaults'));
-    this.set(attrs, options);
-    this.changed = {};
-    this.initialize.apply(this, arguments);
-  };
-
-  // Attach all inheritable methods to the Model prototype.
-  _.extend(Model.prototype, Events, {
-
-    // A hash of attributes whose current and previous value differ.
-    changed: null,
-
-    // The value returned during the last failed validation.
-    validationError: null,
-
-    // The default name for the JSON `id` attribute is `"id"`. MongoDB and
-    // CouchDB users may want to set this to `"_id"`.
-    idAttribute: 'id',
-
-    // Initialize is an empty function by default. Override it with your own
-    // initialization logic.
-    initialize: function(){},
-
-    // Return a copy of the model's `attributes` object.
-    toJSON: function(options) {
-      return _.clone(this.attributes);
-    },
-
-    // Proxy `Backbone.sync` by default -- but override this if you need
-    // custom syncing semantics for *this* particular model.
-    sync: function() {
-      return Backbone.sync.apply(this, arguments);
-    },
-
-    // Get the value of an attribute.
-    get: function(attr) {
-      return this.attributes[attr];
-    },
-
-    // Get the HTML-escaped value of an attribute.
-    escape: function(attr) {
-      return _.escape(this.get(attr));
-    },
-
-    // Returns `true` if the attribute contains a value that is not null
-    // or undefined.
-    has: function(attr) {
-      return this.get(attr) != null;
-    },
-
-    // Set a hash of model attributes on the object, firing `"change"`. This is
-    // the core primitive operation of a model, updating the data and notifying
-    // anyone who needs to know about the change in state. The heart of the beast.
-    set: function(key, val, options) {
-      var attr, attrs, unset, changes, silent, changing, prev, current;
-      if (key == null) return this;
-
-      // Handle both `"key", value` and `{key: value}` -style arguments.
-      if (typeof key === 'object') {
-        attrs = key;
-        options = val;
-      } else {
-        (attrs = {})[key] = val;
-      }
-
-      options || (options = {});
-
-      // Run validation.
-      if (!this._validate(attrs, options)) return false;
-
-      // Extract attributes and options.
-      unset           = options.unset;
-      silent          = options.silent;
-      changes         = [];
-      changing        = this._changing;
-      this._changing  = true;
-
-      if (!changing) {
-        this._previousAttributes = _.clone(this.attributes);
-        this.changed = {};
-      }
-      current = this.attributes, prev = this._previousAttributes;
-
-      // Check for changes of `id`.
-      if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];
-
-      // For each `set` attribute, update or delete the current value.
-      for (attr in attrs) {
-        val = attrs[attr];
-        if (!_.isEqual(current[attr], val)) changes.push(attr);
-        if (!_.isEqual(prev[attr], val)) {
-          this.changed[attr] = val;
-        } else {
-          delete this.changed[attr];
-        }
-        unset ? delete current[attr] : current[attr] = val;
-      }
-
-      // Trigger all relevant attribute changes.
-      if (!silent) {
-        if (changes.length) this._pending = options;
-        for (var i = 0, l = changes.length; i < l; i++) {
-          this.trigger('change:' + changes[i], this, current[changes[i]], options);
-        }
-      }
-
-      // You might be wondering why there's a `while` loop here. Changes can
-      // be recursively nested within `"change"` events.
-      if (changing) return this;
-      if (!silent) {
-        while (this._pending) {
-          options = this._pending;
-          this._pending = false;
-          this.trigger('change', this, options);
-        }
-      }
-      this._pending = false;
-      this._changing = false;
-      return this;
-    },
-
-    // Remove an attribute from the model, firing `"change"`. `unset` is a noop
-    // if the attribute doesn't exist.
-    unset: function(attr, options) {
-      return this.set(attr, void 0, _.extend({}, options, {unset: true}));
-    },
-
-    // Clear all attributes on the model, firing `"change"`.
-    clear: function(options) {
-      var attrs = {};
-      for (var key in this.attributes) attrs[key] = void 0;
-      return this.set(attrs, _.extend({}, options, {unset: true}));
-    },
-
-    // Determine if the model has changed since the last `"change"` event.
-    // If you specify an attribute name, determine if that attribute has changed.
-    hasChanged: function(attr) {
-      if (attr == null) return !_.isEmpty(this.changed);
-      return _.has(this.changed, attr);
-    },
-
-    // Return an object containing all the attributes that have changed, or
-    // false if there are no changed attributes. Useful for determining what
-    // parts of a view need to be updated and/or what attributes need to be
-    // persisted to the server. Unset attributes will be set to undefined.
-    // You can also pass an attributes object to diff against the model,
-    // determining if there *would be* a change.
-    changedAttributes: function(diff) {
-      if (!diff) return this.hasChanged() ? _.clone(this.changed) : false;
-      var val, changed = false;
-      var old = this._changing ? this._previousAttributes : this.attributes;
-      for (var attr in diff) {
-        if (_.isEqual(old[attr], (val = diff[attr]))) continue;
-        (changed || (changed = {}))[attr] = val;
-      }
-      return changed;
-    },
-
-    // Get the previous value of an attribute, recorded at the time the last
-    // `"change"` event was fired.
-    previous: function(attr) {
-      if (attr == null || !this._previousAttributes) return null;
-      return this._previousAttributes[attr];
-    },
-
-    // Get all of the attributes of the model at the time of the previous
-    // `"change"` event.
-    previousAttributes: function() {
-      return _.clone(this._previousAttributes);
-    },
-
-    // Fetch the model from the server. If the server's representation of the
-    // model differs from its current attributes, they will be overridden,
-    // triggering a `"change"` event.
-    fetch: function(options) {
-      options = options ? _.clone(options) : {};
-      if (options.parse === void 0) options.parse = true;
-      var model = this;
-      var success = options.success;
-      options.success = function(resp) {
-        if (!model.set(model.parse(resp, options), options)) return false;
-        if (success) success(model, resp, options);
-        model.trigger('sync', model, resp, options);
-      };
-      wrapError(this, options);
-      return this.sync('read', this, options);
-    },
-
-    // Set a hash of model attributes, and sync the model to the server.
-    // If the server returns an attributes hash that differs, the model's
-    // state will be `set` again.
-    save: function(key, val, options) {
-      var attrs, method, xhr, attributes = this.attributes;
-
-      // Handle both `"key", value` and `{key: value}` -style arguments.
-      if (key == null || typeof key === 'object') {
-        attrs = key;
-        options = val;
-      } else {
-        (attrs = {})[key] = val;
-      }
-
-      options = _.extend({validate: true}, options);
-
-      // If we're not waiting and attributes exist, save acts as
-      // `set(attr).save(null, opts)` with validation. Otherwise, check if
-      // the model will be valid when the attributes, if any, are set.
-      if (attrs && !options.wait) {
-        if (!this.set(attrs, options)) return false;
-      } else {
-        if (!this._validate(attrs, options)) return false;
-      }
-
-      // Set temporary attributes if `{wait: true}`.
-      if (attrs && options.wait) {
-        this.attributes = _.extend({}, attributes, attrs);
-      }
-
-      // After a successful server-side save, the client is (optionally)
-      // updated with the server-side state.
-      if (options.parse === void 0) options.parse = true;
-      var model = this;
-      var success = options.success;
-      options.success = function(resp) {
-        // Ensure attributes are restored during synchronous saves.
-        model.attributes = attributes;
-        var serverAttrs = model.parse(resp, options);
-        if (options.wait) serverAttrs = _.extend(attrs || {}, serverAttrs);
-        if (_.isObject(serverAttrs) && !model.set(serverAttrs, options)) {
-          return false;
-        }
-        if (success) success(model, resp, options);
-        model.trigger('sync', model, resp, options);
-      };
-      wrapError(this, options);
-
-      method = this.isNew() ? 'create' : (options.patch ? 'patch' : 'update');
-      if (method === 'patch') options.attrs = attrs;
-      xhr = this.sync(method, this, options);
-
-      // Restore attributes.
-      if (attrs && options.wait) this.attributes = attributes;
-
-      return xhr;
-    },
-
-    // Destroy this model on the server if it was already persisted.
-    // Optimistically removes the model from its collection, if it has one.
-    // If `wait: true` is passed, waits for the server to respond before removal.
-    destroy: function(options) {
-      options = options ? _.clone(options) : {};
-      var model = this;
-      var success = options.success;
-
-      var destroy = function() {
-        model.trigger('destroy', model, model.collection, options);
-      };
-
-      options.success = function(resp) {
-        if (options.wait || model.isNew()) destroy();
-        if (success) success(model, resp, options);
-        if (!model.isNew()) model.trigger('sync', model, resp, options);
-      };
-
-      if (this.isNew()) {
-        options.success();
-        return false;
-      }
-      wrapError(this, options);
-
-      var xhr = this.sync('delete', this, options);
-      if (!options.wait) destroy();
-      return xhr;
-    },
-
-    // Default URL for the model's representation on the server -- if you're
-    // using Backbone's restful methods, override this to change the endpoint
-    // that will be called.
-    url: function() {
-      var base =
-        _.result(this, 'urlRoot') ||
-        _.result(this.collection, 'url') ||
-        urlError();
-      if (this.isNew()) return base;
-      return base.replace(/([^\/])$/, '$1/') + encodeURIComponent(this.id);
-    },
-
-    // **parse** converts a response into the hash of attributes to be `set` on
-    // the model. The default implementation is just to pass the response along.
-    parse: function(resp, options) {
-      return resp;
-    },
-
-    // Create a new model with identical attributes to this one.
-    clone: function() {
-      return new this.constructor(this.attributes);
-    },
-
-    // A model is new if it has never been saved to the server, and lacks an id.
-    isNew: function() {
-      return !this.has(this.idAttribute);
-    },
-
-    // Check if the model is currently in a valid state.
-    isValid: function(options) {
-      return this._validate({}, _.extend(options || {}, { validate: true }));
-    },
-
-    // Run validation against the next complete set of model attributes,
-    // returning `true` if all is well. Otherwise, fire an `"invalid"` event.
-    _validate: function(attrs, options) {
-      if (!options.validate || !this.validate) return true;
-      attrs = _.extend({}, this.attributes, attrs);
-      var error = this.validationError = this.validate(attrs, options) || null;
-      if (!error) return true;
-      this.trigger('invalid', this, error, _.extend(options, {validationError: error}));
-      return false;
-    }
-
-  });
-
-  // Underscore methods that we want to implement on the Model.
-  var modelMethods = ['keys', 'values', 'pairs', 'invert', 'pick', 'omit'];
-
-  // Mix in each Underscore method as a proxy to `Model#attributes`.
-  _.each(modelMethods, function(method) {
-    Model.prototype[method] = function() {
-      var args = slice.call(arguments);
-      args.unshift(this.attributes);
-      return _[method].apply(_, args);
-    };
-  });
-
-  // Backbone.Collection
-  // -------------------
-
-  // If models tend to represent a single row of data, a Backbone Collection is
-  // more analagous to a table full of data ... or a small slice or page of that
-  // table, or a collection of rows that belong together for a particular reason
-  // -- all of the messages in this particular folder, all of the documents
-  // belonging to this particular author, and so on. Collections maintain
-  // indexes of their models, both in order, and for lookup by `id`.
-
-  // Create a new **Collection**, perhaps to contain a specific type of `model`.
-  // If a `comparator` is specified, the Collection will maintain
-  // its models in sort order, as they're added and removed.
-  var Collection = Backbone.Collection = function(models, options) {
-    options || (options = {});
-    if (options.model) this.model = options.model;
-    if (options.comparator !== void 0) this.comparator = options.comparator;
-    this._reset();
-    this.initialize.apply(this, arguments);
-    if (models) this.reset(models, _.extend({silent: true}, options));
-  };
-
-  // Default options for `Collection#set`.
-  var setOptions = {add: true, remove: true, merge: true};
-  var addOptions = {add: true, remove: false};
-
-  // Define the Collection's inheritable methods.
-  _.extend(Collection.prototype, Events, {
-
-    // The default model for a collection is just a **Backbone.Model**.
-    // This should be overridden in most cases.
-    model: Model,
-
-    // Initialize is an empty function by default. Override it with your own
-    // initialization logic.
-    initialize: function(){},
-
-    // The JSON representation of a Collection is an array of the
-    // models' attributes.
-    toJSON: function(options) {
-      return this.map(function(model){ return model.toJSON(options); });
-    },
-
-    // Proxy `Backbone.sync` by default.
-    sync: function() {
-      return Backbone.sync.apply(this, arguments);
-    },
-
-    // Add a model, or list of models to the set.
-    add: function(models, options) {
-      return this.set(models, _.extend({merge: false}, options, addOptions));
-    },
-
-    // Remove a model, or a list of models from the set.
-    remove: function(models, options) {
-      var singular = !_.isArray(models);
-      models = singular ? [models] : _.clone(models);
-      options || (options = {});
-      var i, l, index, model;
-      for (i = 0, l = models.length; i < l; i++) {
-        model = models[i] = this.get(models[i]);
-        if (!model) continue;
-        delete this._byId[model.id];
-        delete this._byId[model.cid];
-        index = this.indexOf(model);
-        this.models.splice(index, 1);
-        this.length--;
-        if (!options.silent) {
-          options.index = index;
-          model.trigger('remove', model, this, options);
-        }
-        this._removeReference(model, options);
-      }
-      return singular ? models[0] : models;
-    },
-
-    // Update a collection by `set`-ing a new list of models, adding new ones,
-    // removing models that are no longer present, and merging models that
-    // already exist in the collection, as necessary. Similar to **Model#set**,
-    // the core operation for updating the data contained by the collection.
-    set: function(models, options) {
-      options = _.defaults({}, options, setOptions);
-      if (options.parse) models = this.parse(models, options);
-      var singular = !_.isArray(models);
-      models = singular ? (models ? [models] : []) : _.clone(models);
-      var i, l, id, model, attrs, existing, sort;
-      var at = options.at;
-      var targetModel = this.model;
-      var sortable = this.comparator && (at == null) && options.sort !== false;
-      var sortAttr = _.isString(this.comparator) ? this.comparator : null;
-      var toAdd = [], toRemove = [], modelMap = {};
-      var add = options.add, merge = options.merge, remove = options.remove;
-      var order = !sortable && add && remove ? [] : false;
-
-      // Turn bare objects into model references, and prevent invalid models
-      // from being added.
-      for (i = 0, l = models.length; i < l; i++) {
-        attrs = models[i] || {};
-        if (attrs instanceof Model) {
-          id = model = attrs;
-        } else {
-          id = attrs[targetModel.prototype.idAttribute || 'id'];
-        }
-
-        // If a duplicate is found, prevent it from being added and
-        // optionally merge it into the existing model.
-        if (existing = this.get(id)) {
-          if (remove) modelMap[existing.cid] = true;
-          if (merge) {
-            attrs = attrs === model ? model.attributes : attrs;
-            if (options.parse) attrs = existing.parse(attrs, options);
-            existing.set(attrs, options);
-            if (sortable && !sort && existing.hasChanged(sortAttr)) sort = true;
-          }
-          models[i] = existing;
-
-        // If this is a new, valid model, push it to the `toAdd` list.
-        } else if (add) {
-          model = models[i] = this._prepareModel(attrs, options);
-          if (!model) continue;
-          toAdd.push(model);
-          this._addReference(model, options);
-        }
-
-        // Do not add multiple models with the same `id`.
-        model = existing || model;
-        if (order && (model.isNew() || !modelMap[model.id])) order.push(model);
-        modelMap[model.id] = true;
-      }
-
-      // Remove nonexistent models if appropriate.
-      if (remove) {
-        for (i = 0, l = this.length; i < l; ++i) {
-          if (!modelMap[(model = this.models[i]).cid]) toRemove.push(model);
-        }
-        if (toRemove.length) this.remove(toRemove, options);
-      }
-
-      // See if sorting is needed, update `length` and splice in new models.
-      if (toAdd.length || (order && order.length)) {
-        if (sortable) sort = true;
-        this.length += toAdd.length;
-        if (at != null) {
-          for (i = 0, l = toAdd.length; i < l; i++) {
-            this.models.splice(at + i, 0, toAdd[i]);
-          }
-        } else {
-          if (order) this.models.length = 0;
-          var orderedModels = order || toAdd;
-          for (i = 0, l = orderedModels.length; i < l; i++) {
-            this.models.push(orderedModels[i]);
-          }
-        }
-      }
-
-      // Silently sort the collection if appropriate.
-      if (sort) this.sort({silent: true});
-
-      // Unless silenced, it's time to fire all appropriate add/sort events.
-      if (!options.silent) {
-        for (i = 0, l = toAdd.length; i < l; i++) {
-          (model = toAdd[i]).trigger('add', model, this, options);
-        }
-        if (sort || (order && order.length)) this.trigger('sort', this, options);
-      }
-
-      // Return the added (or merged) model (or models).
-      return singular ? models[0] : models;
-    },
-
-    // When you have more items than you want to add or remove individually,
-    // you can reset the entire set with a new list of models, without firing
-    // any granular `add` or `remove` events. Fires `reset` when finished.
-    // Useful for bulk operations and optimizations.
-    reset: function(models, options) {
-      options || (options = {});
-      for (var i = 0, l = this.models.length; i < l; i++) {
-        this._removeReference(this.models[i], options);
-      }
-      options.previousModels = this.models;
-      this._reset();
-      models = this.add(models, _.extend({silent: true}, options));
-      if (!options.silent) this.trigger('reset', this, options);
-      return models;
-    },
-
-    // Add a model to the end of the collection.
-    push: function(model, options) {
-      return this.add(model, _.extend({at: this.length}, options));
-    },
-
-    // Remove a model from the end of the collection.
-    pop: function(options) {
-      var model = this.at(this.length - 1);
-      this.remove(model, options);
-      return model;
-    },
-
-    // Add a model to the beginning of the collection.
-    unshift: function(model, options) {
-      return this.add(model, _.extend({at: 0}, options));
-    },
-
-    // Remove a model from the beginning of the collection.
-    shift: function(options) {
-      var model = this.at(0);
-      this.remove(model, options);
-      return model;
-    },
-
-    // Slice out a sub-array of models from the collection.
-    slice: function() {
-      return slice.apply(this.models, arguments);
-    },
-
-    // Get a model from the set by id.
-    get: function(obj) {
-      if (obj == null) return void 0;
-      return this._byId[obj] || this._byId[obj.id] || this._byId[obj.cid];
-    },
-
-    // Get the model at the given index.
-    at: function(index) {
-      return this.models[index];
-    },
-
-    // Return models with matching attributes. Useful for simple cases of
-    // `filter`.
-    where: function(attrs, first) {
-      if (_.isEmpty(attrs)) return first ? void 0 : [];
-      return this[first ? 'find' : 'filter'](function(model) {
-        for (var key in attrs) {
-          if (attrs[key] !== model.get(key)) return false;
-        }
-        return true;
-      });
-    },
-
-    // Return the first model with matching attributes. Useful for simple cases
-    // of `find`.
-    findWhere: function(attrs) {
-      return this.where(attrs, true);
-    },
-
-    // Force the collection to re-sort itself. You don't need to call this under
-    // normal circumstances, as the set will maintain sort order as each item
-    // is added.
-    sort: function(options) {
-      if (!this.comparator) throw new Error('Cannot sort a set without a comparator');
-      options || (options = {});
-
-      // Run sort based on type of `comparator`.
-      if (_.isString(this.comparator) || this.comparator.length === 1) {
-        this.models = this.sortBy(this.comparator, this);
-      } else {
-        this.models.sort(_.bind(this.comparator, this));
-      }
-
-      if (!options.silent) this.trigger('sort', this, options);
-      return this;
-    },
-
-    // Pluck an attribute from each model in the collection.
-    pluck: function(attr) {
-      return _.invoke(this.models, 'get', attr);
-    },
-
-    // Fetch the default set of models for this collection, resetting the
-    // collection when they arrive. If `reset: true` is passed, the response
-    // data will be passed through the `reset` method instead of `set`.
-    fetch: function(options) {
-      options = options ? _.clone(options) : {};
-      if (options.parse === void 0) options.parse = true;
-      var success = options.success;
-      var collection = this;
-      options.success = function(resp) {
-        var method = options.reset ? 'reset' : 'set';
-        collection[method](resp, options);
-        if (success) success(collection, resp, options);
-        collection.trigger('sync', collection, resp, options);
-      };
-      wrapError(this, options);
-      return this.sync('read', this, options);
-    },
-
-    // Create a new instance of a model in this collection. Add the model to the
-    // collection immediately, unless `wait: true` is passed, in which case we
-    // wait for the server to agree.
-    create: function(model, options) {
-      options = options ? _.clone(options) : {};
-      if (!(model = this._prepareModel(model, options))) return false;
-      if (!options.wait) this.add(model, options);
-      var collection = this;
-      var success = options.success;
-      options.success = function(model, resp) {
-        if (options.wait) collection.add(model, options);
-        if (success) success(model, resp, options);
-      };
-      model.save(null, options);
-      return model;
-    },
-
-    // **parse** converts a response into a list of models to be added to the
-    // collection. The default implementation is just to pass it through.
-    parse: function(resp, options) {
-      return resp;
-    },
-
-    // Create a new collection with an identical list of models as this one.
-    clone: function() {
-      return new this.constructor(this.models);
-    },
-
-    // Private method to reset all internal state. Called when the collection
-    // is first initialized or reset.
-    _reset: function() {
-      this.length = 0;
-      this.models = [];
-      this._byId  = {};
-    },
-
-    // Prepare a hash of attributes (or other model) to be added to this
-    // collection.
-    _prepareModel: function(attrs, options) {
-      if (attrs instanceof Model) return attrs;
-      options = options ? _.clone(options) : {};
-      options.collection = this;
-      var model = new this.model(attrs, options);
-      if (!model.validationError) return model;
-      this.trigger('invalid', this, model.validationError, options);
-      return false;
-    },
-
-    // Internal method to create a model's ties to a collection.
-    _addReference: function(model, options) {
-      this._byId[model.cid] = model;
-      if (model.id != null) this._byId[model.id] = model;
-      if (!model.collection) model.collection = this;
-      model.on('all', this._onModelEvent, this);
-    },
-
-    // Internal method to sever a model's ties to a collection.
-    _removeReference: function(model, options) {
-      if (this === model.collection) delete model.collection;
-      model.off('all', this._onModelEvent, this);
-    },
-
-    // Internal method called every time a model in the set fires an event.
-    // Sets need to update their indexes when models change ids. All other
-    // events simply proxy through. "add" and "remove" events that originate
-    // in other collections are ignored.
-    _onModelEvent: function(event, model, collection, options) {
-      if ((event === 'add' || event === 'remove') && collection !== this) return;
-      if (event === 'destroy') this.remove(model, options);
-      if (model && event === 'change:' + model.idAttribute) {
-        delete this._byId[model.previous(model.idAttribute)];
-        if (model.id != null) this._byId[model.id] = model;
-      }
-      this.trigger.apply(this, arguments);
-    }
-
-  });
-
-  // Underscore methods that we want to implement on the Collection.
-  // 90% of the core usefulness of Backbone Collections is actually implemented
-  // right here:
-  var methods = ['forEach', 'each', 'map', 'collect', 'reduce', 'foldl',
-    'inject', 'reduceRight', 'foldr', 'find', 'detect', 'filter', 'select',
-    'reject', 'every', 'all', 'some', 'any', 'include', 'contains', 'invoke',
-    'max', 'min', 'toArray', 'size', 'first', 'head', 'take', 'initial', 'rest',
-    'tail', 'drop', 'last', 'without', 'difference', 'indexOf', 'shuffle',
-    'lastIndexOf', 'isEmpty', 'chain', 'sample'];
-
-  // Mix in each Underscore method as a proxy to `Collection#models`.
-  _.each(methods, function(method) {
-    Collection.prototype[method] = function() {
-      var args = slice.call(arguments);
-      args.unshift(this.models);
-      return _[method].apply(_, args);
-    };
-  });
-
-  // Underscore methods that take a property name as an argument.
-  var attributeMethods = ['groupBy', 'countBy', 'sortBy', 'indexBy'];
-
-  // Use attributes instead of properties.
-  _.each(attributeMethods, function(method) {
-    Collection.prototype[method] = function(value, context) {
-      var iterator = _.isFunction(value) ? value : function(model) {
-        return model.get(value);
-      };
-      return _[method](this.models, iterator, context);
-    };
-  });
-
-  // Backbone.View
-  // -------------
-
-  // Backbone Views are almost more convention than they are actual code. A View
-  // is simply a JavaScript object that represents a logical chunk of UI in the
-  // DOM. This might be a single item, an entire list, a sidebar or panel, or
-  // even the surrounding frame which wraps your whole app. Defining a chunk of
-  // UI as a **View** allows you to define your DOM events declaratively, without
-  // having to worry about render order ... and makes it easy for the view to
-  // react to specific changes in the state of your models.
-
-  // Creating a Backbone.View creates its initial element outside of the DOM,
-  // if an existing element is not provided...
-  var View = Backbone.View = function(options) {
-    this.cid = _.uniqueId('view');
-    options || (options = {});
-    _.extend(this, _.pick(options, viewOptions));
-    this._ensureElement();
-    this.initialize.apply(this, arguments);
-    this.delegateEvents();
-  };
-
-  // Cached regex to split keys for `delegate`.
-  var delegateEventSplitter = /^(\S+)\s*(.*)$/;
-
-  // List of view options to be merged as properties.
-  var viewOptions = ['model', 'collection', 'el', 'id', 'attributes', 'className', 'tagName', 'events'];
-
-  // Set up all inheritable **Backbone.View** properties and methods.
-  _.extend(View.prototype, Events, {
-
-    // The default `tagName` of a View's element is `"div"`.
-    tagName: 'div',
-
-    // jQuery delegate for element lookup, scoped to DOM elements within the
-    // current view. This should be preferred to global lookups where possible.
-    $: function(selector) {
-      return this.$el.find(selector);
-    },
-
-    // Initialize is an empty function by default. Override it with your own
-    // initialization logic.
-    initialize: function(){},
-
-    // **render** is the core function that your view should override, in order
-    // to populate its element (`this.el`), with the appropriate HTML. The
-    // convention is for **render** to always return `this`.
-    render: function() {
-      return this;
-    },
-
-    // Remove this view by taking the element out of the DOM, and removing any
-    // applicable Backbone.Events listeners.
-    remove: function() {
-      this.$el.remove();
-      this.stopListening();
-      return this;
-    },
-
-    // Change the view's element (`this.el` property), including event
-    // re-delegation.
-    setElement: function(element, delegate) {
-      if (this.$el) this.undelegateEvents();
-      this.$el = element instanceof Backbone.$ ? element : Backbone.$(element);
-      this.el = this.$el[0];
-      if (delegate !== false) this.delegateEvents();
-      return this;
-    },
-
-    // Set callbacks, where `this.events` is a hash of
-    //
-    // *{"event selector": "callback"}*
-    //
-    //     {
-    //       'mousedown .title':  'edit',
-    //       'click .button':     'save',
-    //       'click .open':       function(e) { ... }
-    //     }
-    //
-    // pairs. Callbacks will be bound to the view, with `this` set properly.
-    // Uses event delegation for efficiency.
-    // Omitting the selector binds the event to `this.el`.
-    // This only works for delegate-able events: not `focus`, `blur`, and
-    // not `change`, `submit`, and `reset` in Internet Explorer.
-    delegateEvents: function(events) {
-      if (!(events || (events = _.result(this, 'events')))) return this;
-      this.undelegateEvents();
-      for (var key in events) {
-        var method = events[key];
-        if (!_.isFunction(method)) method = this[events[key]];
-        if (!method) continue;
-
-        var match = key.match(delegateEventSplitter);
-        var eventName = match[1], selector = match[2];
-        method = _.bind(method, this);
-        eventName += '.delegateEvents' + this.cid;
-        if (selector === '') {
-          this.$el.on(eventName, method);
-        } else {
-          this.$el.on(eventName, selector, method);
-        }
-      }
-      return this;
-    },
-
-    // Clears all callbacks previously bound to the view with `delegateEvents`.
-    // You usually don't need to use this, but may wish to if you have multiple
-    // Backbone views attached to the same DOM element.
-    undelegateEvents: function() {
-      this.$el.off('.delegateEvents' + this.cid);
-      return this;
-    },
-
-    // Ensure that the View has a DOM element to render into.
-    // If `this.el` is a string, pass it through `$()`, take the first
-    // matching element, and re-assign it to `el`. Otherwise, create
-    // an element from the `id`, `className` and `tagName` properties.
-    _ensureElement: function() {
-      if (!this.el) {
-        var attrs = _.extend({}, _.result(this, 'attributes'));
-        if (this.id) attrs.id = _.result(this, 'id');
-        if (this.className) attrs['class'] = _.result(this, 'className');
-        var $el = Backbone.$('<' + _.result(this, 'tagName') + '>').attr(attrs);
-        this.setElement($el, false);
-      } else {
-        this.setElement(_.result(this, 'el'), false);
-      }
-    }
-
-  });
-
-  // Backbone.sync
-  // -------------
-
-  // Override this function to change the manner in which Backbone persists
-  // models to the server. You will be passed the type of request, and the
-  // model in question. By default, makes a RESTful Ajax request
-  // to the model's `url()`. Some possible customizations could be:
-  //
-  // * Use `setTimeout` to batch rapid-fire updates into a single request.
-  // * Send up the models as XML instead of JSON.
-  // * Persist models via WebSockets instead of Ajax.
-  //
-  // Turn on `Backbone.emulateHTTP` in order to send `PUT` and `DELETE` requests
-  // as `POST`, with a `_method` parameter containing the true HTTP method,
-  // as well as all requests with the body as `application/x-www-form-urlencoded`
-  // instead of `application/json` with the model in a param named `model`.
-  // Useful when interfacing with server-side languages like **PHP** that make
-  // it difficult to read the body of `PUT` requests.
-  Backbone.sync = function(method, model, options) {
-    var type = methodMap[method];
-
-    // Default options, unless specified.
-    _.defaults(options || (options = {}), {
-      emulateHTTP: Backbone.emulateHTTP,
-      emulateJSON: Backbone.emulateJSON
-    });
-
-    // Default JSON-request options.
-    var params = {type: type, dataType: 'json'};
-
-    // Ensure that we have a URL.
-    if (!options.url) {
-      params.url = _.result(model, 'url') || urlError();
-    }
-
-    // Ensure that we have the appropriate request data.
-    if (options.data == null && model && (method === 'create' || method === 'update' || method === 'patch')) {
-      params.contentType = 'application/json';
-      params.data = JSON.stringify(options.attrs || model.toJSON(options));
-    }
-
-    // For older servers, emulate JSON by encoding the request into an HTML-form.
-    if (options.emulateJSON) {
-      params.contentType = 'application/x-www-form-urlencoded';
-      params.data = params.data ? {model: params.data} : {};
-    }
-
-    // For older servers, emulate HTTP by mimicking the HTTP method with `_method`
-    // And an `X-HTTP-Method-Override` header.
-    if (options.emulateHTTP && (type === 'PUT' || type === 'DELETE' || type === 'PATCH')) {
-      params.type = 'POST';
-      if (options.emulateJSON) params.data._method = type;
-      var beforeSend = options.beforeSend;
-      options.beforeSend = function(xhr) {
-        xhr.setRequestHeader('X-HTTP-Method-Override', type);
-        if (beforeSend) return beforeSend.apply(this, arguments);
-      };
-    }
-
-    // Don't process data on a non-GET request.
-    if (params.type !== 'GET' && !options.emulateJSON) {
-      params.processData = false;
-    }
-
-    // If we're sending a `PATCH` request, and we're in an old Internet Explorer
-    // that still has ActiveX enabled by default, override jQuery to use that
-    // for XHR instead. Remove this line when jQuery supports `PATCH` on IE8.
-    if (params.type === 'PATCH' && noXhrPatch) {
-      params.xhr = function() {
-        return new ActiveXObject("Microsoft.XMLHTTP");
-      };
-    }
-
-    // Make the request, allowing the user to override any Ajax options.
-    var xhr = options.xhr = Backbone.ajax(_.extend(params, options));
-    model.trigger('request', model, xhr, options);
-    return xhr;
-  };
-
-  var noXhrPatch =
-    typeof window !== 'undefined' && !!window.ActiveXObject &&
-      !(window.XMLHttpRequest && (new XMLHttpRequest).dispatchEvent);
-
-  // Map from CRUD to HTTP for our default `Backbone.sync` implementation.
-  var methodMap = {
-    'create': 'POST',
-    'update': 'PUT',
-    'patch':  'PATCH',
-    'delete': 'DELETE',
-    'read':   'GET'
-  };
-
-  // Set the default implementation of `Backbone.ajax` to proxy through to `$`.
-  // Override this if you'd like to use a different library.
-  Backbone.ajax = function() {
-    return Backbone.$.ajax.apply(Backbone.$, arguments);
-  };
-
-  // Backbone.Router
-  // ---------------
-
-  // Routers map faux-URLs to actions, and fire events when routes are
-  // matched. Creating a new one sets its `routes` hash, if not set statically.
-  var Router = Backbone.Router = function(options) {
-    options || (options = {});
-    if (options.routes) this.routes = options.routes;
-    this._bindRoutes();
-    this.initialize.apply(this, arguments);
-  };
-
-  // Cached regular expressions for matching named param parts and splatted
-  // parts of route strings.
-  var optionalParam = /\((.*?)\)/g;
-  var namedParam    = /(\(\?)?:\w+/g;
-  var splatParam    = /\*\w+/g;
-  var escapeRegExp  = /[\-{}\[\]+?.,\\\^$|#\s]/g;
-
-  // Set up all inheritable **Backbone.Router** properties and methods.
-  _.extend(Router.prototype, Events, {
-
-    // Initialize is an empty function by default. Override it with your own
-    // initialization logic.
-    initialize: function(){},
-
-    // Manually bind a single named route to a callback. For example:
-    //
-    //     this.route('search/:query/p:num', 'search', function(query, num) {
-    //       ...
-    //     });
-    //
-    route: function(route, name, callback) {
-      if (!_.isRegExp(route)) route = this._routeToRegExp(route);
-      if (_.isFunction(name)) {
-        callback = name;
-        name = '';
-      }
-      if (!callback) callback = this[name];
-      var router = this;
-      Backbone.history.route(route, function(fragment) {
-        var args = router._extractParameters(route, fragment);
-        router.execute(callback, args);
-        router.trigger.apply(router, ['route:' + name].concat(args));
-        router.trigger('route', name, args);
-        Backbone.history.trigger('route', router, name, args);
-      });
-      return this;
-    },
-
-    // Execute a route handler with the provided parameters.  This is an
-    // excellent place to do pre-route setup or post-route cleanup.
-    execute: function(callback, args) {
-      if (callback) callback.apply(this, args);
-    },
-
-    // Simple proxy to `Backbone.history` to save a fragment into the history.
-    navigate: function(fragment, options) {
-      Backbone.history.navigate(fragment, options);
-      return this;
-    },
-
-    // Bind all defined routes to `Backbone.history`. We have to reverse the
-    // order of the routes here to support behavior where the most general
-    // routes can be defined at the bottom of the route map.
-    _bindRoutes: function() {
-      if (!this.routes) return;
-      this.routes = _.result(this, 'routes');
-      var route, routes = _.keys(this.routes);
-      while ((route = routes.pop()) != null) {
-        this.route(route, this.routes[route]);
-      }
-    },
-
-    // Convert a route string into a regular expression, suitable for matching
-    // against the current location hash.
-    _routeToRegExp: function(route) {
-      route = route.replace(escapeRegExp, '\\$&')
-                   .replace(optionalParam, '(?:$1)?')
-                   .replace(namedParam, function(match, optional) {
-                     return optional ? match : '([^/?]+)';
-                   })
-                   .replace(splatParam, '([^?]*?)');
-      return new RegExp('^' + route + '(?:\\?([\\s\\S]*))?$');
-    },
-
-    // Given a route, and a URL fragment that it matches, return the array of
-    // extracted decoded parameters. Empty or unmatched parameters will be
-    // treated as `null` to normalize cross-browser behavior.
-    _extractParameters: function(route, fragment) {
-      var params = route.exec(fragment).slice(1);
-      return _.map(params, function(param, i) {
-        // Don't decode the search params.
-        if (i === params.length - 1) return param || null;
-        return param ? decodeURIComponent(param) : null;
-      });
-    }
-
-  });
-
-  // Backbone.History
-  // ----------------
-
-  // Handles cross-browser history management, based on either
-  // [pushState](http://diveintohtml5.info/history.html) and real URLs, or
-  // [onhashchange](https://developer.mozilla.org/en-US/docs/DOM/window.onhashchange)
-  // and URL fragments. If the browser supports neither (old IE, natch),
-  // falls back to polling.
-  var History = Backbone.History = function() {
-    this.handlers = [];
-    _.bindAll(this, 'checkUrl');
-
-    // Ensure that `History` can be used outside of the browser.
-    if (typeof window !== 'undefined') {
-      this.location = window.location;
-      this.history = window.history;
-    }
-  };
-
-  // Cached regex for stripping a leading hash/slash and trailing space.
-  var routeStripper = /^[#\/]|\s+$/g;
-
-  // Cached regex for stripping leading and trailing slashes.
-  var rootStripper = /^\/+|\/+$/g;
-
-  // Cached regex for detecting MSIE.
-  var isExplorer = /msie [\w.]+/;
-
-  // Cached regex for removing a trailing slash.
-  var trailingSlash = /\/$/;
-
-  // Cached regex for stripping urls of hash.
-  var pathStripper = /#.*$/;
-
-  // Has the history handling already been started?
-  History.started = false;
-
-  // Set up all inheritable **Backbone.History** properties and methods.
-  _.extend(History.prototype, Events, {
-
-    // The default interval to poll for hash changes, if necessary, is
-    // twenty times a second.
-    interval: 50,
-
-    // Are we at the app root?
-    atRoot: function() {
-      return this.location.pathname.replace(/[^\/]$/, '$&/') === this.root;
-    },
-
-    // Gets the true hash value. Cannot use location.hash directly due to bug
-    // in Firefox where location.hash will always be decoded.
-    getHash: function(window) {
-      var match = (window || this).location.href.match(/#(.*)$/);
-      return match ? match[1] : '';
-    },
-
-    // Get the cross-browser normalized URL fragment, either from the URL,
-    // the hash, or the override.
-    getFragment: function(fragment, forcePushState) {
-      if (fragment == null) {
-        if (this._hasPushState || !this._wantsHashChange || forcePushState) {
-          fragment = decodeURI(this.location.pathname + this.location.search);
-          var root = this.root.replace(trailingSlash, '');
-          if (!fragment.indexOf(root)) fragment = fragment.slice(root.length);
-        } else {
-          fragment = this.getHash();
-        }
-      }
-      return fragment.replace(routeStripper, '');
-    },
-
-    // Start the hash change handling, returning `true` if the current URL matches
-    // an existing route, and `false` otherwise.
-    start: function(options) {
-      if (History.started) throw new Error("Backbone.history has already been started");
-      History.started = true;
-
-      // Figure out the initial configuration. Do we need an iframe?
-      // Is pushState desired ... is it available?
-      this.options          = _.extend({root: '/'}, this.options, options);
-      this.root             = this.options.root;
-      this._wantsHashChange = this.options.hashChange !== false;
-      this._wantsPushState  = !!this.options.pushState;
-      this._hasPushState    = !!(this.options.pushState && this.history && this.history.pushState);
-      var fragment          = this.getFragment();
-      var docMode           = document.documentMode;
-      var oldIE             = (isExplorer.exec(navigator.userAgent.toLowerCase()) && (!docMode || docMode <= 7));
-
-      // Normalize root to always include a leading and trailing slash.
-      this.root = ('/' + this.root + '/').replace(rootStripper, '/');
-
-      if (oldIE && this._wantsHashChange) {
-        var frame = Backbone.$('<iframe src="javascript:0" tabindex="-1">');
-        this.iframe = frame.hide().appendTo('body')[0].contentWindow;
-        this.navigate(fragment);
-      }
-
-      // Depending on whether we're using pushState or hashes, and whether
-      // 'onhashchange' is supported, determine how we check the URL state.
-      if (this._hasPushState) {
-        Backbone.$(window).on('popstate', this.checkUrl);
-      } else if (this._wantsHashChange && ('onhashchange' in window) && !oldIE) {
-        Backbone.$(window).on('hashchange', this.checkUrl);
-      } else if (this._wantsHashChange) {
-        this._checkUrlInterval = setInterval(this.checkUrl, this.interval);
-      }
-
-      // Determine if we need to change the base url, for a pushState link
-      // opened by a non-pushState browser.
-      this.fragment = fragment;
-      var loc = this.location;
-
-      // Transition from hashChange to pushState or vice versa if both are
-      // requested.
-      if (this._wantsHashChange && this._wantsPushState) {
-
-        // If we've started off with a route from a `pushState`-enabled
-        // browser, but we're currently in a browser that doesn't support it...
-        if (!this._hasPushState && !this.atRoot()) {
-          this.fragment = this.getFragment(null, true);
-          this.location.replace(this.root + '#' + this.fragment);
-          // Return immediately as browser will do redirect to new url
-          return true;
-
-        // Or if we've started out with a hash-based route, but we're currently
-        // in a browser where it could be `pushState`-based instead...
-        } else if (this._hasPushState && this.atRoot() && loc.hash) {
-          this.fragment = this.getHash().replace(routeStripper, '');
-          this.history.replaceState({}, document.title, this.root + this.fragment);
-        }
-
-      }
-
-      if (!this.options.silent) return this.loadUrl();
-    },
-
-    // Disable Backbone.history, perhaps temporarily. Not useful in a real app,
-    // but possibly useful for unit testing Routers.
-    stop: function() {
-      Backbone.$(window).off('popstate', this.checkUrl).off('hashchange', this.checkUrl);
-      if (this._checkUrlInterval) clearInterval(this._checkUrlInterval);
-      History.started = false;
-    },
-
-    // Add a route to be tested when the fragment changes. Routes added later
-    // may override previous routes.
-    route: function(route, callback) {
-      this.handlers.unshift({route: route, callback: callback});
-    },
-
-    // Checks the current URL to see if it has changed, and if it has,
-    // calls `loadUrl`, normalizing across the hidden iframe.
-    checkUrl: function(e) {
-      var current = this.getFragment();
-      if (current === this.fragment && this.iframe) {
-        current = this.getFragment(this.getHash(this.iframe));
-      }
-      if (current === this.fragment) return false;
-      if (this.iframe) this.navigate(current);
-      this.loadUrl();
-    },
-
-    // Attempt to load the current URL fragment. If a route succeeds with a
-    // match, returns `true`. If no defined routes matches the fragment,
-    // returns `false`.
-    loadUrl: function(fragment) {
-      fragment = this.fragment = this.getFragment(fragment);
-      return _.any(this.handlers, function(handler) {
-        if (handler.route.test(fragment)) {
-          handler.callback(fragment);
-          return true;
-        }
-      });
-    },
-
-    // Save a fragment into the hash history, or replace the URL state if the
-    // 'replace' option is passed. You are responsible for properly URL-encoding
-    // the fragment in advance.
-    //
-    // The options object can contain `trigger: true` if you wish to have the
-    // route callback be fired (not usually desirable), or `replace: true`, if
-    // you wish to modify the current URL without adding an entry to the history.
-    navigate: function(fragment, options) {
-      if (!History.started) return false;
-      if (!options || options === true) options = {trigger: !!options};
-
-      var url = this.root + (fragment = this.getFragment(fragment || ''));
-
-      // Strip the hash for matching.
-      fragment = fragment.replace(pathStripper, '');
-
-      if (this.fragment === fragment) return;
-      this.fragment = fragment;
-
-      // Don't include a trailing slash on the root.
-      if (fragment === '' && url !== '/') url = url.slice(0, -1);
-
-      // If pushState is available, we use it to set the fragment as a real URL.
-      if (this._hasPushState) {
-        this.history[options.replace ? 'replaceState' : 'pushState']({}, document.title, url);
-
-      // If hash changes haven't been explicitly disabled, update the hash
-      // fragment to store history.
-      } else if (this._wantsHashChange) {
-        this._updateHash(this.location, fragment, options.replace);
-        if (this.iframe && (fragment !== this.getFragment(this.getHash(this.iframe)))) {
-          // Opening and closing the iframe tricks IE7 and earlier to push a
-          // history entry on hash-tag change.  When replace is true, we don't
-          // want this.
-          if(!options.replace) this.iframe.document.open().close();
-          this._updateHash(this.iframe.location, fragment, options.replace);
-        }
-
-      // If you've told us that you explicitly don't want fallback hashchange-
-      // based history, then `navigate` becomes a page refresh.
-      } else {
-        return this.location.assign(url);
-      }
-      if (options.trigger) return this.loadUrl(fragment);
-    },
-
-    // Update the hash location, either replacing the current entry, or adding
-    // a new one to the browser history.
-    _updateHash: function(location, fragment, replace) {
-      if (replace) {
-        var href = location.href.replace(/(javascript:|#).*$/, '');
-        location.replace(href + '#' + fragment);
-      } else {
-        // Some browsers require that `hash` contains a leading #.
-        location.hash = '#' + fragment;
-      }
-    }
-
-  });
-
-  // Create the default Backbone.history.
-  Backbone.history = new History;
-
-  // Helpers
-  // -------
-
-  // Helper function to correctly set up the prototype chain, for subclasses.
-  // Similar to `goog.inherits`, but uses a hash of prototype properties and
-  // class properties to be extended.
-  var extend = function(protoProps, staticProps) {
-    var parent = this;
-    var child;
-
-    // The constructor function for the new subclass is either defined by you
-    // (the "constructor" property in your `extend` definition), or defaulted
-    // by us to simply call the parent's constructor.
-    if (protoProps && _.has(protoProps, 'constructor')) {
-      child = protoProps.constructor;
-    } else {
-      child = function(){ return parent.apply(this, arguments); };
-    }
-
-    // Add static properties to the constructor function, if supplied.
-    _.extend(child, parent, staticProps);
-
-    // Set the prototype chain to inherit from `parent`, without calling
-    // `parent`'s constructor function.
-    var Surrogate = function(){ this.constructor = child; };
-    Surrogate.prototype = parent.prototype;
-    child.prototype = new Surrogate;
-
-    // Add prototype properties (instance properties) to the subclass,
-    // if supplied.
-    if (protoProps) _.extend(child.prototype, protoProps);
-
-    // Set a convenience property in case the parent's prototype is needed
-    // later.
-    child.__super__ = parent.prototype;
-
-    return child;
-  };
-
-  // Set up inheritance for the model, collection, router, view and history.
-  Model.extend = Collection.extend = Router.extend = View.extend = History.extend = extend;
-
-  // Throw an error when a URL is needed, and none is supplied.
-  var urlError = function() {
-    throw new Error('A "url" property or function must be specified');
-  };
-
-  // Wrap an optional error callback with a fallback error event.
-  var wrapError = function(model, options) {
-    var error = options.error;
-    options.error = function(resp) {
-      if (error) error(model, resp, options);
-      model.trigger('error', model, resp, options);
-    };
-  };
-
-  return Backbone;
-
-}));
-
-;/*!
  * jQuery JavaScript Library v1.10.2
  * http://jquery.com/
  *
@@ -14227,6 +11224,3009 @@ if ( typeof module === "object" && module && typeof module.exports === "object" 
 
 })( window );
 
+;//     Backbone.js 1.1.2
+
+//     (c) 2010-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+//     Backbone may be freely distributed under the MIT license.
+//     For all details and documentation:
+//     http://backbonejs.org
+
+(function(root, factory) {
+
+  // Set up Backbone appropriately for the environment. Start with AMD.
+  if (typeof define === 'function' && define.amd) {
+    define(['underscore', 'jquery', 'exports'], function(_, $, exports) {
+      // Export global even in AMD case in case this script is loaded with
+      // others that may still expect a global Backbone.
+      root.Backbone = factory(root, exports, _, $);
+    });
+
+  // Next for Node.js or CommonJS. jQuery may not be needed as a module.
+  } else if (typeof exports !== 'undefined') {
+    var _ = require('underscore');
+    factory(root, exports, _);
+
+  // Finally, as a browser global.
+  } else {
+    root.Backbone = factory(root, {}, root._, (root.jQuery || root.Zepto || root.ender || root.$));
+  }
+
+}(this, function(root, Backbone, _, $) {
+
+  // Initial Setup
+  // -------------
+
+  // Save the previous value of the `Backbone` variable, so that it can be
+  // restored later on, if `noConflict` is used.
+  var previousBackbone = root.Backbone;
+
+  // Create local references to array methods we'll want to use later.
+  var array = [];
+  var push = array.push;
+  var slice = array.slice;
+  var splice = array.splice;
+
+  // Current version of the library. Keep in sync with `package.json`.
+  Backbone.VERSION = '1.1.2';
+
+  // For Backbone's purposes, jQuery, Zepto, Ender, or My Library (kidding) owns
+  // the `$` variable.
+  Backbone.$ = $;
+
+  // Runs Backbone.js in *noConflict* mode, returning the `Backbone` variable
+  // to its previous owner. Returns a reference to this Backbone object.
+  Backbone.noConflict = function() {
+    root.Backbone = previousBackbone;
+    return this;
+  };
+
+  // Turn on `emulateHTTP` to support legacy HTTP servers. Setting this option
+  // will fake `"PATCH"`, `"PUT"` and `"DELETE"` requests via the `_method` parameter and
+  // set a `X-Http-Method-Override` header.
+  Backbone.emulateHTTP = false;
+
+  // Turn on `emulateJSON` to support legacy servers that can't deal with direct
+  // `application/json` requests ... will encode the body as
+  // `application/x-www-form-urlencoded` instead and will send the model in a
+  // form param named `model`.
+  Backbone.emulateJSON = false;
+
+  // Backbone.Events
+  // ---------------
+
+  // A module that can be mixed in to *any object* in order to provide it with
+  // custom events. You may bind with `on` or remove with `off` callback
+  // functions to an event; `trigger`-ing an event fires all callbacks in
+  // succession.
+  //
+  //     var object = {};
+  //     _.extend(object, Backbone.Events);
+  //     object.on('expand', function(){ alert('expanded'); });
+  //     object.trigger('expand');
+  //
+  var Events = Backbone.Events = {
+
+    // Bind an event to a `callback` function. Passing `"all"` will bind
+    // the callback to all events fired.
+    on: function(name, callback, context) {
+      if (!eventsApi(this, 'on', name, [callback, context]) || !callback) return this;
+      this._events || (this._events = {});
+      var events = this._events[name] || (this._events[name] = []);
+      events.push({callback: callback, context: context, ctx: context || this});
+      return this;
+    },
+
+    // Bind an event to only be triggered a single time. After the first time
+    // the callback is invoked, it will be removed.
+    once: function(name, callback, context) {
+      if (!eventsApi(this, 'once', name, [callback, context]) || !callback) return this;
+      var self = this;
+      var once = _.once(function() {
+        self.off(name, once);
+        callback.apply(this, arguments);
+      });
+      once._callback = callback;
+      return this.on(name, once, context);
+    },
+
+    // Remove one or many callbacks. If `context` is null, removes all
+    // callbacks with that function. If `callback` is null, removes all
+    // callbacks for the event. If `name` is null, removes all bound
+    // callbacks for all events.
+    off: function(name, callback, context) {
+      var retain, ev, events, names, i, l, j, k;
+      if (!this._events || !eventsApi(this, 'off', name, [callback, context])) return this;
+      if (!name && !callback && !context) {
+        this._events = void 0;
+        return this;
+      }
+      names = name ? [name] : _.keys(this._events);
+      for (i = 0, l = names.length; i < l; i++) {
+        name = names[i];
+        if (events = this._events[name]) {
+          this._events[name] = retain = [];
+          if (callback || context) {
+            for (j = 0, k = events.length; j < k; j++) {
+              ev = events[j];
+              if ((callback && callback !== ev.callback && callback !== ev.callback._callback) ||
+                  (context && context !== ev.context)) {
+                retain.push(ev);
+              }
+            }
+          }
+          if (!retain.length) delete this._events[name];
+        }
+      }
+
+      return this;
+    },
+
+    // Trigger one or many events, firing all bound callbacks. Callbacks are
+    // passed the same arguments as `trigger` is, apart from the event name
+    // (unless you're listening on `"all"`, which will cause your callback to
+    // receive the true name of the event as the first argument).
+    trigger: function(name) {
+      if (!this._events) return this;
+      var args = slice.call(arguments, 1);
+      if (!eventsApi(this, 'trigger', name, args)) return this;
+      var events = this._events[name];
+      var allEvents = this._events.all;
+      if (events) triggerEvents(events, args);
+      if (allEvents) triggerEvents(allEvents, arguments);
+      return this;
+    },
+
+    // Tell this object to stop listening to either specific events ... or
+    // to every object it's currently listening to.
+    stopListening: function(obj, name, callback) {
+      var listeningTo = this._listeningTo;
+      if (!listeningTo) return this;
+      var remove = !name && !callback;
+      if (!callback && typeof name === 'object') callback = this;
+      if (obj) (listeningTo = {})[obj._listenId] = obj;
+      for (var id in listeningTo) {
+        obj = listeningTo[id];
+        obj.off(name, callback, this);
+        if (remove || _.isEmpty(obj._events)) delete this._listeningTo[id];
+      }
+      return this;
+    }
+
+  };
+
+  // Regular expression used to split event strings.
+  var eventSplitter = /\s+/;
+
+  // Implement fancy features of the Events API such as multiple event
+  // names `"change blur"` and jQuery-style event maps `{change: action}`
+  // in terms of the existing API.
+  var eventsApi = function(obj, action, name, rest) {
+    if (!name) return true;
+
+    // Handle event maps.
+    if (typeof name === 'object') {
+      for (var key in name) {
+        obj[action].apply(obj, [key, name[key]].concat(rest));
+      }
+      return false;
+    }
+
+    // Handle space separated event names.
+    if (eventSplitter.test(name)) {
+      var names = name.split(eventSplitter);
+      for (var i = 0, l = names.length; i < l; i++) {
+        obj[action].apply(obj, [names[i]].concat(rest));
+      }
+      return false;
+    }
+
+    return true;
+  };
+
+  // A difficult-to-believe, but optimized internal dispatch function for
+  // triggering events. Tries to keep the usual cases speedy (most internal
+  // Backbone events have 3 arguments).
+  var triggerEvents = function(events, args) {
+    var ev, i = -1, l = events.length, a1 = args[0], a2 = args[1], a3 = args[2];
+    switch (args.length) {
+      case 0: while (++i < l) (ev = events[i]).callback.call(ev.ctx); return;
+      case 1: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1); return;
+      case 2: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2); return;
+      case 3: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2, a3); return;
+      default: while (++i < l) (ev = events[i]).callback.apply(ev.ctx, args); return;
+    }
+  };
+
+  var listenMethods = {listenTo: 'on', listenToOnce: 'once'};
+
+  // Inversion-of-control versions of `on` and `once`. Tell *this* object to
+  // listen to an event in another object ... keeping track of what it's
+  // listening to.
+  _.each(listenMethods, function(implementation, method) {
+    Events[method] = function(obj, name, callback) {
+      var listeningTo = this._listeningTo || (this._listeningTo = {});
+      var id = obj._listenId || (obj._listenId = _.uniqueId('l'));
+      listeningTo[id] = obj;
+      if (!callback && typeof name === 'object') callback = this;
+      obj[implementation](name, callback, this);
+      return this;
+    };
+  });
+
+  // Aliases for backwards compatibility.
+  Events.bind   = Events.on;
+  Events.unbind = Events.off;
+
+  // Allow the `Backbone` object to serve as a global event bus, for folks who
+  // want global "pubsub" in a convenient place.
+  _.extend(Backbone, Events);
+
+  // Backbone.Model
+  // --------------
+
+  // Backbone **Models** are the basic data object in the framework --
+  // frequently representing a row in a table in a database on your server.
+  // A discrete chunk of data and a bunch of useful, related methods for
+  // performing computations and transformations on that data.
+
+  // Create a new model with the specified attributes. A client id (`cid`)
+  // is automatically generated and assigned for you.
+  var Model = Backbone.Model = function(attributes, options) {
+    var attrs = attributes || {};
+    options || (options = {});
+    this.cid = _.uniqueId('c');
+    this.attributes = {};
+    if (options.collection) this.collection = options.collection;
+    if (options.parse) attrs = this.parse(attrs, options) || {};
+    attrs = _.defaults({}, attrs, _.result(this, 'defaults'));
+    this.set(attrs, options);
+    this.changed = {};
+    this.initialize.apply(this, arguments);
+  };
+
+  // Attach all inheritable methods to the Model prototype.
+  _.extend(Model.prototype, Events, {
+
+    // A hash of attributes whose current and previous value differ.
+    changed: null,
+
+    // The value returned during the last failed validation.
+    validationError: null,
+
+    // The default name for the JSON `id` attribute is `"id"`. MongoDB and
+    // CouchDB users may want to set this to `"_id"`.
+    idAttribute: 'id',
+
+    // Initialize is an empty function by default. Override it with your own
+    // initialization logic.
+    initialize: function(){},
+
+    // Return a copy of the model's `attributes` object.
+    toJSON: function(options) {
+      return _.clone(this.attributes);
+    },
+
+    // Proxy `Backbone.sync` by default -- but override this if you need
+    // custom syncing semantics for *this* particular model.
+    sync: function() {
+      return Backbone.sync.apply(this, arguments);
+    },
+
+    // Get the value of an attribute.
+    get: function(attr) {
+      return this.attributes[attr];
+    },
+
+    // Get the HTML-escaped value of an attribute.
+    escape: function(attr) {
+      return _.escape(this.get(attr));
+    },
+
+    // Returns `true` if the attribute contains a value that is not null
+    // or undefined.
+    has: function(attr) {
+      return this.get(attr) != null;
+    },
+
+    // Set a hash of model attributes on the object, firing `"change"`. This is
+    // the core primitive operation of a model, updating the data and notifying
+    // anyone who needs to know about the change in state. The heart of the beast.
+    set: function(key, val, options) {
+      var attr, attrs, unset, changes, silent, changing, prev, current;
+      if (key == null) return this;
+
+      // Handle both `"key", value` and `{key: value}` -style arguments.
+      if (typeof key === 'object') {
+        attrs = key;
+        options = val;
+      } else {
+        (attrs = {})[key] = val;
+      }
+
+      options || (options = {});
+
+      // Run validation.
+      if (!this._validate(attrs, options)) return false;
+
+      // Extract attributes and options.
+      unset           = options.unset;
+      silent          = options.silent;
+      changes         = [];
+      changing        = this._changing;
+      this._changing  = true;
+
+      if (!changing) {
+        this._previousAttributes = _.clone(this.attributes);
+        this.changed = {};
+      }
+      current = this.attributes, prev = this._previousAttributes;
+
+      // Check for changes of `id`.
+      if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];
+
+      // For each `set` attribute, update or delete the current value.
+      for (attr in attrs) {
+        val = attrs[attr];
+        if (!_.isEqual(current[attr], val)) changes.push(attr);
+        if (!_.isEqual(prev[attr], val)) {
+          this.changed[attr] = val;
+        } else {
+          delete this.changed[attr];
+        }
+        unset ? delete current[attr] : current[attr] = val;
+      }
+
+      // Trigger all relevant attribute changes.
+      if (!silent) {
+        if (changes.length) this._pending = options;
+        for (var i = 0, l = changes.length; i < l; i++) {
+          this.trigger('change:' + changes[i], this, current[changes[i]], options);
+        }
+      }
+
+      // You might be wondering why there's a `while` loop here. Changes can
+      // be recursively nested within `"change"` events.
+      if (changing) return this;
+      if (!silent) {
+        while (this._pending) {
+          options = this._pending;
+          this._pending = false;
+          this.trigger('change', this, options);
+        }
+      }
+      this._pending = false;
+      this._changing = false;
+      return this;
+    },
+
+    // Remove an attribute from the model, firing `"change"`. `unset` is a noop
+    // if the attribute doesn't exist.
+    unset: function(attr, options) {
+      return this.set(attr, void 0, _.extend({}, options, {unset: true}));
+    },
+
+    // Clear all attributes on the model, firing `"change"`.
+    clear: function(options) {
+      var attrs = {};
+      for (var key in this.attributes) attrs[key] = void 0;
+      return this.set(attrs, _.extend({}, options, {unset: true}));
+    },
+
+    // Determine if the model has changed since the last `"change"` event.
+    // If you specify an attribute name, determine if that attribute has changed.
+    hasChanged: function(attr) {
+      if (attr == null) return !_.isEmpty(this.changed);
+      return _.has(this.changed, attr);
+    },
+
+    // Return an object containing all the attributes that have changed, or
+    // false if there are no changed attributes. Useful for determining what
+    // parts of a view need to be updated and/or what attributes need to be
+    // persisted to the server. Unset attributes will be set to undefined.
+    // You can also pass an attributes object to diff against the model,
+    // determining if there *would be* a change.
+    changedAttributes: function(diff) {
+      if (!diff) return this.hasChanged() ? _.clone(this.changed) : false;
+      var val, changed = false;
+      var old = this._changing ? this._previousAttributes : this.attributes;
+      for (var attr in diff) {
+        if (_.isEqual(old[attr], (val = diff[attr]))) continue;
+        (changed || (changed = {}))[attr] = val;
+      }
+      return changed;
+    },
+
+    // Get the previous value of an attribute, recorded at the time the last
+    // `"change"` event was fired.
+    previous: function(attr) {
+      if (attr == null || !this._previousAttributes) return null;
+      return this._previousAttributes[attr];
+    },
+
+    // Get all of the attributes of the model at the time of the previous
+    // `"change"` event.
+    previousAttributes: function() {
+      return _.clone(this._previousAttributes);
+    },
+
+    // Fetch the model from the server. If the server's representation of the
+    // model differs from its current attributes, they will be overridden,
+    // triggering a `"change"` event.
+    fetch: function(options) {
+      options = options ? _.clone(options) : {};
+      if (options.parse === void 0) options.parse = true;
+      var model = this;
+      var success = options.success;
+      options.success = function(resp) {
+        if (!model.set(model.parse(resp, options), options)) return false;
+        if (success) success(model, resp, options);
+        model.trigger('sync', model, resp, options);
+      };
+      wrapError(this, options);
+      return this.sync('read', this, options);
+    },
+
+    // Set a hash of model attributes, and sync the model to the server.
+    // If the server returns an attributes hash that differs, the model's
+    // state will be `set` again.
+    save: function(key, val, options) {
+      var attrs, method, xhr, attributes = this.attributes;
+
+      // Handle both `"key", value` and `{key: value}` -style arguments.
+      if (key == null || typeof key === 'object') {
+        attrs = key;
+        options = val;
+      } else {
+        (attrs = {})[key] = val;
+      }
+
+      options = _.extend({validate: true}, options);
+
+      // If we're not waiting and attributes exist, save acts as
+      // `set(attr).save(null, opts)` with validation. Otherwise, check if
+      // the model will be valid when the attributes, if any, are set.
+      if (attrs && !options.wait) {
+        if (!this.set(attrs, options)) return false;
+      } else {
+        if (!this._validate(attrs, options)) return false;
+      }
+
+      // Set temporary attributes if `{wait: true}`.
+      if (attrs && options.wait) {
+        this.attributes = _.extend({}, attributes, attrs);
+      }
+
+      // After a successful server-side save, the client is (optionally)
+      // updated with the server-side state.
+      if (options.parse === void 0) options.parse = true;
+      var model = this;
+      var success = options.success;
+      options.success = function(resp) {
+        // Ensure attributes are restored during synchronous saves.
+        model.attributes = attributes;
+        var serverAttrs = model.parse(resp, options);
+        if (options.wait) serverAttrs = _.extend(attrs || {}, serverAttrs);
+        if (_.isObject(serverAttrs) && !model.set(serverAttrs, options)) {
+          return false;
+        }
+        if (success) success(model, resp, options);
+        model.trigger('sync', model, resp, options);
+      };
+      wrapError(this, options);
+
+      method = this.isNew() ? 'create' : (options.patch ? 'patch' : 'update');
+      if (method === 'patch') options.attrs = attrs;
+      xhr = this.sync(method, this, options);
+
+      // Restore attributes.
+      if (attrs && options.wait) this.attributes = attributes;
+
+      return xhr;
+    },
+
+    // Destroy this model on the server if it was already persisted.
+    // Optimistically removes the model from its collection, if it has one.
+    // If `wait: true` is passed, waits for the server to respond before removal.
+    destroy: function(options) {
+      options = options ? _.clone(options) : {};
+      var model = this;
+      var success = options.success;
+
+      var destroy = function() {
+        model.trigger('destroy', model, model.collection, options);
+      };
+
+      options.success = function(resp) {
+        if (options.wait || model.isNew()) destroy();
+        if (success) success(model, resp, options);
+        if (!model.isNew()) model.trigger('sync', model, resp, options);
+      };
+
+      if (this.isNew()) {
+        options.success();
+        return false;
+      }
+      wrapError(this, options);
+
+      var xhr = this.sync('delete', this, options);
+      if (!options.wait) destroy();
+      return xhr;
+    },
+
+    // Default URL for the model's representation on the server -- if you're
+    // using Backbone's restful methods, override this to change the endpoint
+    // that will be called.
+    url: function() {
+      var base =
+        _.result(this, 'urlRoot') ||
+        _.result(this.collection, 'url') ||
+        urlError();
+      if (this.isNew()) return base;
+      return base.replace(/([^\/])$/, '$1/') + encodeURIComponent(this.id);
+    },
+
+    // **parse** converts a response into the hash of attributes to be `set` on
+    // the model. The default implementation is just to pass the response along.
+    parse: function(resp, options) {
+      return resp;
+    },
+
+    // Create a new model with identical attributes to this one.
+    clone: function() {
+      return new this.constructor(this.attributes);
+    },
+
+    // A model is new if it has never been saved to the server, and lacks an id.
+    isNew: function() {
+      return !this.has(this.idAttribute);
+    },
+
+    // Check if the model is currently in a valid state.
+    isValid: function(options) {
+      return this._validate({}, _.extend(options || {}, { validate: true }));
+    },
+
+    // Run validation against the next complete set of model attributes,
+    // returning `true` if all is well. Otherwise, fire an `"invalid"` event.
+    _validate: function(attrs, options) {
+      if (!options.validate || !this.validate) return true;
+      attrs = _.extend({}, this.attributes, attrs);
+      var error = this.validationError = this.validate(attrs, options) || null;
+      if (!error) return true;
+      this.trigger('invalid', this, error, _.extend(options, {validationError: error}));
+      return false;
+    }
+
+  });
+
+  // Underscore methods that we want to implement on the Model.
+  var modelMethods = ['keys', 'values', 'pairs', 'invert', 'pick', 'omit'];
+
+  // Mix in each Underscore method as a proxy to `Model#attributes`.
+  _.each(modelMethods, function(method) {
+    Model.prototype[method] = function() {
+      var args = slice.call(arguments);
+      args.unshift(this.attributes);
+      return _[method].apply(_, args);
+    };
+  });
+
+  // Backbone.Collection
+  // -------------------
+
+  // If models tend to represent a single row of data, a Backbone Collection is
+  // more analagous to a table full of data ... or a small slice or page of that
+  // table, or a collection of rows that belong together for a particular reason
+  // -- all of the messages in this particular folder, all of the documents
+  // belonging to this particular author, and so on. Collections maintain
+  // indexes of their models, both in order, and for lookup by `id`.
+
+  // Create a new **Collection**, perhaps to contain a specific type of `model`.
+  // If a `comparator` is specified, the Collection will maintain
+  // its models in sort order, as they're added and removed.
+  var Collection = Backbone.Collection = function(models, options) {
+    options || (options = {});
+    if (options.model) this.model = options.model;
+    if (options.comparator !== void 0) this.comparator = options.comparator;
+    this._reset();
+    this.initialize.apply(this, arguments);
+    if (models) this.reset(models, _.extend({silent: true}, options));
+  };
+
+  // Default options for `Collection#set`.
+  var setOptions = {add: true, remove: true, merge: true};
+  var addOptions = {add: true, remove: false};
+
+  // Define the Collection's inheritable methods.
+  _.extend(Collection.prototype, Events, {
+
+    // The default model for a collection is just a **Backbone.Model**.
+    // This should be overridden in most cases.
+    model: Model,
+
+    // Initialize is an empty function by default. Override it with your own
+    // initialization logic.
+    initialize: function(){},
+
+    // The JSON representation of a Collection is an array of the
+    // models' attributes.
+    toJSON: function(options) {
+      return this.map(function(model){ return model.toJSON(options); });
+    },
+
+    // Proxy `Backbone.sync` by default.
+    sync: function() {
+      return Backbone.sync.apply(this, arguments);
+    },
+
+    // Add a model, or list of models to the set.
+    add: function(models, options) {
+      return this.set(models, _.extend({merge: false}, options, addOptions));
+    },
+
+    // Remove a model, or a list of models from the set.
+    remove: function(models, options) {
+      var singular = !_.isArray(models);
+      models = singular ? [models] : _.clone(models);
+      options || (options = {});
+      var i, l, index, model;
+      for (i = 0, l = models.length; i < l; i++) {
+        model = models[i] = this.get(models[i]);
+        if (!model) continue;
+        delete this._byId[model.id];
+        delete this._byId[model.cid];
+        index = this.indexOf(model);
+        this.models.splice(index, 1);
+        this.length--;
+        if (!options.silent) {
+          options.index = index;
+          model.trigger('remove', model, this, options);
+        }
+        this._removeReference(model, options);
+      }
+      return singular ? models[0] : models;
+    },
+
+    // Update a collection by `set`-ing a new list of models, adding new ones,
+    // removing models that are no longer present, and merging models that
+    // already exist in the collection, as necessary. Similar to **Model#set**,
+    // the core operation for updating the data contained by the collection.
+    set: function(models, options) {
+      options = _.defaults({}, options, setOptions);
+      if (options.parse) models = this.parse(models, options);
+      var singular = !_.isArray(models);
+      models = singular ? (models ? [models] : []) : _.clone(models);
+      var i, l, id, model, attrs, existing, sort;
+      var at = options.at;
+      var targetModel = this.model;
+      var sortable = this.comparator && (at == null) && options.sort !== false;
+      var sortAttr = _.isString(this.comparator) ? this.comparator : null;
+      var toAdd = [], toRemove = [], modelMap = {};
+      var add = options.add, merge = options.merge, remove = options.remove;
+      var order = !sortable && add && remove ? [] : false;
+
+      // Turn bare objects into model references, and prevent invalid models
+      // from being added.
+      for (i = 0, l = models.length; i < l; i++) {
+        attrs = models[i] || {};
+        if (attrs instanceof Model) {
+          id = model = attrs;
+        } else {
+          id = attrs[targetModel.prototype.idAttribute || 'id'];
+        }
+
+        // If a duplicate is found, prevent it from being added and
+        // optionally merge it into the existing model.
+        if (existing = this.get(id)) {
+          if (remove) modelMap[existing.cid] = true;
+          if (merge) {
+            attrs = attrs === model ? model.attributes : attrs;
+            if (options.parse) attrs = existing.parse(attrs, options);
+            existing.set(attrs, options);
+            if (sortable && !sort && existing.hasChanged(sortAttr)) sort = true;
+          }
+          models[i] = existing;
+
+        // If this is a new, valid model, push it to the `toAdd` list.
+        } else if (add) {
+          model = models[i] = this._prepareModel(attrs, options);
+          if (!model) continue;
+          toAdd.push(model);
+          this._addReference(model, options);
+        }
+
+        // Do not add multiple models with the same `id`.
+        model = existing || model;
+        if (order && (model.isNew() || !modelMap[model.id])) order.push(model);
+        modelMap[model.id] = true;
+      }
+
+      // Remove nonexistent models if appropriate.
+      if (remove) {
+        for (i = 0, l = this.length; i < l; ++i) {
+          if (!modelMap[(model = this.models[i]).cid]) toRemove.push(model);
+        }
+        if (toRemove.length) this.remove(toRemove, options);
+      }
+
+      // See if sorting is needed, update `length` and splice in new models.
+      if (toAdd.length || (order && order.length)) {
+        if (sortable) sort = true;
+        this.length += toAdd.length;
+        if (at != null) {
+          for (i = 0, l = toAdd.length; i < l; i++) {
+            this.models.splice(at + i, 0, toAdd[i]);
+          }
+        } else {
+          if (order) this.models.length = 0;
+          var orderedModels = order || toAdd;
+          for (i = 0, l = orderedModels.length; i < l; i++) {
+            this.models.push(orderedModels[i]);
+          }
+        }
+      }
+
+      // Silently sort the collection if appropriate.
+      if (sort) this.sort({silent: true});
+
+      // Unless silenced, it's time to fire all appropriate add/sort events.
+      if (!options.silent) {
+        for (i = 0, l = toAdd.length; i < l; i++) {
+          (model = toAdd[i]).trigger('add', model, this, options);
+        }
+        if (sort || (order && order.length)) this.trigger('sort', this, options);
+      }
+
+      // Return the added (or merged) model (or models).
+      return singular ? models[0] : models;
+    },
+
+    // When you have more items than you want to add or remove individually,
+    // you can reset the entire set with a new list of models, without firing
+    // any granular `add` or `remove` events. Fires `reset` when finished.
+    // Useful for bulk operations and optimizations.
+    reset: function(models, options) {
+      options || (options = {});
+      for (var i = 0, l = this.models.length; i < l; i++) {
+        this._removeReference(this.models[i], options);
+      }
+      options.previousModels = this.models;
+      this._reset();
+      models = this.add(models, _.extend({silent: true}, options));
+      if (!options.silent) this.trigger('reset', this, options);
+      return models;
+    },
+
+    // Add a model to the end of the collection.
+    push: function(model, options) {
+      return this.add(model, _.extend({at: this.length}, options));
+    },
+
+    // Remove a model from the end of the collection.
+    pop: function(options) {
+      var model = this.at(this.length - 1);
+      this.remove(model, options);
+      return model;
+    },
+
+    // Add a model to the beginning of the collection.
+    unshift: function(model, options) {
+      return this.add(model, _.extend({at: 0}, options));
+    },
+
+    // Remove a model from the beginning of the collection.
+    shift: function(options) {
+      var model = this.at(0);
+      this.remove(model, options);
+      return model;
+    },
+
+    // Slice out a sub-array of models from the collection.
+    slice: function() {
+      return slice.apply(this.models, arguments);
+    },
+
+    // Get a model from the set by id.
+    get: function(obj) {
+      if (obj == null) return void 0;
+      return this._byId[obj] || this._byId[obj.id] || this._byId[obj.cid];
+    },
+
+    // Get the model at the given index.
+    at: function(index) {
+      return this.models[index];
+    },
+
+    // Return models with matching attributes. Useful for simple cases of
+    // `filter`.
+    where: function(attrs, first) {
+      if (_.isEmpty(attrs)) return first ? void 0 : [];
+      return this[first ? 'find' : 'filter'](function(model) {
+        for (var key in attrs) {
+          if (attrs[key] !== model.get(key)) return false;
+        }
+        return true;
+      });
+    },
+
+    // Return the first model with matching attributes. Useful for simple cases
+    // of `find`.
+    findWhere: function(attrs) {
+      return this.where(attrs, true);
+    },
+
+    // Force the collection to re-sort itself. You don't need to call this under
+    // normal circumstances, as the set will maintain sort order as each item
+    // is added.
+    sort: function(options) {
+      if (!this.comparator) throw new Error('Cannot sort a set without a comparator');
+      options || (options = {});
+
+      // Run sort based on type of `comparator`.
+      if (_.isString(this.comparator) || this.comparator.length === 1) {
+        this.models = this.sortBy(this.comparator, this);
+      } else {
+        this.models.sort(_.bind(this.comparator, this));
+      }
+
+      if (!options.silent) this.trigger('sort', this, options);
+      return this;
+    },
+
+    // Pluck an attribute from each model in the collection.
+    pluck: function(attr) {
+      return _.invoke(this.models, 'get', attr);
+    },
+
+    // Fetch the default set of models for this collection, resetting the
+    // collection when they arrive. If `reset: true` is passed, the response
+    // data will be passed through the `reset` method instead of `set`.
+    fetch: function(options) {
+      options = options ? _.clone(options) : {};
+      if (options.parse === void 0) options.parse = true;
+      var success = options.success;
+      var collection = this;
+      options.success = function(resp) {
+        var method = options.reset ? 'reset' : 'set';
+        collection[method](resp, options);
+        if (success) success(collection, resp, options);
+        collection.trigger('sync', collection, resp, options);
+      };
+      wrapError(this, options);
+      return this.sync('read', this, options);
+    },
+
+    // Create a new instance of a model in this collection. Add the model to the
+    // collection immediately, unless `wait: true` is passed, in which case we
+    // wait for the server to agree.
+    create: function(model, options) {
+      options = options ? _.clone(options) : {};
+      if (!(model = this._prepareModel(model, options))) return false;
+      if (!options.wait) this.add(model, options);
+      var collection = this;
+      var success = options.success;
+      options.success = function(model, resp) {
+        if (options.wait) collection.add(model, options);
+        if (success) success(model, resp, options);
+      };
+      model.save(null, options);
+      return model;
+    },
+
+    // **parse** converts a response into a list of models to be added to the
+    // collection. The default implementation is just to pass it through.
+    parse: function(resp, options) {
+      return resp;
+    },
+
+    // Create a new collection with an identical list of models as this one.
+    clone: function() {
+      return new this.constructor(this.models);
+    },
+
+    // Private method to reset all internal state. Called when the collection
+    // is first initialized or reset.
+    _reset: function() {
+      this.length = 0;
+      this.models = [];
+      this._byId  = {};
+    },
+
+    // Prepare a hash of attributes (or other model) to be added to this
+    // collection.
+    _prepareModel: function(attrs, options) {
+      if (attrs instanceof Model) return attrs;
+      options = options ? _.clone(options) : {};
+      options.collection = this;
+      var model = new this.model(attrs, options);
+      if (!model.validationError) return model;
+      this.trigger('invalid', this, model.validationError, options);
+      return false;
+    },
+
+    // Internal method to create a model's ties to a collection.
+    _addReference: function(model, options) {
+      this._byId[model.cid] = model;
+      if (model.id != null) this._byId[model.id] = model;
+      if (!model.collection) model.collection = this;
+      model.on('all', this._onModelEvent, this);
+    },
+
+    // Internal method to sever a model's ties to a collection.
+    _removeReference: function(model, options) {
+      if (this === model.collection) delete model.collection;
+      model.off('all', this._onModelEvent, this);
+    },
+
+    // Internal method called every time a model in the set fires an event.
+    // Sets need to update their indexes when models change ids. All other
+    // events simply proxy through. "add" and "remove" events that originate
+    // in other collections are ignored.
+    _onModelEvent: function(event, model, collection, options) {
+      if ((event === 'add' || event === 'remove') && collection !== this) return;
+      if (event === 'destroy') this.remove(model, options);
+      if (model && event === 'change:' + model.idAttribute) {
+        delete this._byId[model.previous(model.idAttribute)];
+        if (model.id != null) this._byId[model.id] = model;
+      }
+      this.trigger.apply(this, arguments);
+    }
+
+  });
+
+  // Underscore methods that we want to implement on the Collection.
+  // 90% of the core usefulness of Backbone Collections is actually implemented
+  // right here:
+  var methods = ['forEach', 'each', 'map', 'collect', 'reduce', 'foldl',
+    'inject', 'reduceRight', 'foldr', 'find', 'detect', 'filter', 'select',
+    'reject', 'every', 'all', 'some', 'any', 'include', 'contains', 'invoke',
+    'max', 'min', 'toArray', 'size', 'first', 'head', 'take', 'initial', 'rest',
+    'tail', 'drop', 'last', 'without', 'difference', 'indexOf', 'shuffle',
+    'lastIndexOf', 'isEmpty', 'chain', 'sample'];
+
+  // Mix in each Underscore method as a proxy to `Collection#models`.
+  _.each(methods, function(method) {
+    Collection.prototype[method] = function() {
+      var args = slice.call(arguments);
+      args.unshift(this.models);
+      return _[method].apply(_, args);
+    };
+  });
+
+  // Underscore methods that take a property name as an argument.
+  var attributeMethods = ['groupBy', 'countBy', 'sortBy', 'indexBy'];
+
+  // Use attributes instead of properties.
+  _.each(attributeMethods, function(method) {
+    Collection.prototype[method] = function(value, context) {
+      var iterator = _.isFunction(value) ? value : function(model) {
+        return model.get(value);
+      };
+      return _[method](this.models, iterator, context);
+    };
+  });
+
+  // Backbone.View
+  // -------------
+
+  // Backbone Views are almost more convention than they are actual code. A View
+  // is simply a JavaScript object that represents a logical chunk of UI in the
+  // DOM. This might be a single item, an entire list, a sidebar or panel, or
+  // even the surrounding frame which wraps your whole app. Defining a chunk of
+  // UI as a **View** allows you to define your DOM events declaratively, without
+  // having to worry about render order ... and makes it easy for the view to
+  // react to specific changes in the state of your models.
+
+  // Creating a Backbone.View creates its initial element outside of the DOM,
+  // if an existing element is not provided...
+  var View = Backbone.View = function(options) {
+    this.cid = _.uniqueId('view');
+    options || (options = {});
+    _.extend(this, _.pick(options, viewOptions));
+    this._ensureElement();
+    this.initialize.apply(this, arguments);
+    this.delegateEvents();
+  };
+
+  // Cached regex to split keys for `delegate`.
+  var delegateEventSplitter = /^(\S+)\s*(.*)$/;
+
+  // List of view options to be merged as properties.
+  var viewOptions = ['model', 'collection', 'el', 'id', 'attributes', 'className', 'tagName', 'events'];
+
+  // Set up all inheritable **Backbone.View** properties and methods.
+  _.extend(View.prototype, Events, {
+
+    // The default `tagName` of a View's element is `"div"`.
+    tagName: 'div',
+
+    // jQuery delegate for element lookup, scoped to DOM elements within the
+    // current view. This should be preferred to global lookups where possible.
+    $: function(selector) {
+      return this.$el.find(selector);
+    },
+
+    // Initialize is an empty function by default. Override it with your own
+    // initialization logic.
+    initialize: function(){},
+
+    // **render** is the core function that your view should override, in order
+    // to populate its element (`this.el`), with the appropriate HTML. The
+    // convention is for **render** to always return `this`.
+    render: function() {
+      return this;
+    },
+
+    // Remove this view by taking the element out of the DOM, and removing any
+    // applicable Backbone.Events listeners.
+    remove: function() {
+      this.$el.remove();
+      this.stopListening();
+      return this;
+    },
+
+    // Change the view's element (`this.el` property), including event
+    // re-delegation.
+    setElement: function(element, delegate) {
+      if (this.$el) this.undelegateEvents();
+      this.$el = element instanceof Backbone.$ ? element : Backbone.$(element);
+      this.el = this.$el[0];
+      if (delegate !== false) this.delegateEvents();
+      return this;
+    },
+
+    // Set callbacks, where `this.events` is a hash of
+    //
+    // *{"event selector": "callback"}*
+    //
+    //     {
+    //       'mousedown .title':  'edit',
+    //       'click .button':     'save',
+    //       'click .open':       function(e) { ... }
+    //     }
+    //
+    // pairs. Callbacks will be bound to the view, with `this` set properly.
+    // Uses event delegation for efficiency.
+    // Omitting the selector binds the event to `this.el`.
+    // This only works for delegate-able events: not `focus`, `blur`, and
+    // not `change`, `submit`, and `reset` in Internet Explorer.
+    delegateEvents: function(events) {
+      if (!(events || (events = _.result(this, 'events')))) return this;
+      this.undelegateEvents();
+      for (var key in events) {
+        var method = events[key];
+        if (!_.isFunction(method)) method = this[events[key]];
+        if (!method) continue;
+
+        var match = key.match(delegateEventSplitter);
+        var eventName = match[1], selector = match[2];
+        method = _.bind(method, this);
+        eventName += '.delegateEvents' + this.cid;
+        if (selector === '') {
+          this.$el.on(eventName, method);
+        } else {
+          this.$el.on(eventName, selector, method);
+        }
+      }
+      return this;
+    },
+
+    // Clears all callbacks previously bound to the view with `delegateEvents`.
+    // You usually don't need to use this, but may wish to if you have multiple
+    // Backbone views attached to the same DOM element.
+    undelegateEvents: function() {
+      this.$el.off('.delegateEvents' + this.cid);
+      return this;
+    },
+
+    // Ensure that the View has a DOM element to render into.
+    // If `this.el` is a string, pass it through `$()`, take the first
+    // matching element, and re-assign it to `el`. Otherwise, create
+    // an element from the `id`, `className` and `tagName` properties.
+    _ensureElement: function() {
+      if (!this.el) {
+        var attrs = _.extend({}, _.result(this, 'attributes'));
+        if (this.id) attrs.id = _.result(this, 'id');
+        if (this.className) attrs['class'] = _.result(this, 'className');
+        var $el = Backbone.$('<' + _.result(this, 'tagName') + '>').attr(attrs);
+        this.setElement($el, false);
+      } else {
+        this.setElement(_.result(this, 'el'), false);
+      }
+    }
+
+  });
+
+  // Backbone.sync
+  // -------------
+
+  // Override this function to change the manner in which Backbone persists
+  // models to the server. You will be passed the type of request, and the
+  // model in question. By default, makes a RESTful Ajax request
+  // to the model's `url()`. Some possible customizations could be:
+  //
+  // * Use `setTimeout` to batch rapid-fire updates into a single request.
+  // * Send up the models as XML instead of JSON.
+  // * Persist models via WebSockets instead of Ajax.
+  //
+  // Turn on `Backbone.emulateHTTP` in order to send `PUT` and `DELETE` requests
+  // as `POST`, with a `_method` parameter containing the true HTTP method,
+  // as well as all requests with the body as `application/x-www-form-urlencoded`
+  // instead of `application/json` with the model in a param named `model`.
+  // Useful when interfacing with server-side languages like **PHP** that make
+  // it difficult to read the body of `PUT` requests.
+  Backbone.sync = function(method, model, options) {
+    var type = methodMap[method];
+
+    // Default options, unless specified.
+    _.defaults(options || (options = {}), {
+      emulateHTTP: Backbone.emulateHTTP,
+      emulateJSON: Backbone.emulateJSON
+    });
+
+    // Default JSON-request options.
+    var params = {type: type, dataType: 'json'};
+
+    // Ensure that we have a URL.
+    if (!options.url) {
+      params.url = _.result(model, 'url') || urlError();
+    }
+
+    // Ensure that we have the appropriate request data.
+    if (options.data == null && model && (method === 'create' || method === 'update' || method === 'patch')) {
+      params.contentType = 'application/json';
+      params.data = JSON.stringify(options.attrs || model.toJSON(options));
+    }
+
+    // For older servers, emulate JSON by encoding the request into an HTML-form.
+    if (options.emulateJSON) {
+      params.contentType = 'application/x-www-form-urlencoded';
+      params.data = params.data ? {model: params.data} : {};
+    }
+
+    // For older servers, emulate HTTP by mimicking the HTTP method with `_method`
+    // And an `X-HTTP-Method-Override` header.
+    if (options.emulateHTTP && (type === 'PUT' || type === 'DELETE' || type === 'PATCH')) {
+      params.type = 'POST';
+      if (options.emulateJSON) params.data._method = type;
+      var beforeSend = options.beforeSend;
+      options.beforeSend = function(xhr) {
+        xhr.setRequestHeader('X-HTTP-Method-Override', type);
+        if (beforeSend) return beforeSend.apply(this, arguments);
+      };
+    }
+
+    // Don't process data on a non-GET request.
+    if (params.type !== 'GET' && !options.emulateJSON) {
+      params.processData = false;
+    }
+
+    // If we're sending a `PATCH` request, and we're in an old Internet Explorer
+    // that still has ActiveX enabled by default, override jQuery to use that
+    // for XHR instead. Remove this line when jQuery supports `PATCH` on IE8.
+    if (params.type === 'PATCH' && noXhrPatch) {
+      params.xhr = function() {
+        return new ActiveXObject("Microsoft.XMLHTTP");
+      };
+    }
+
+    // Make the request, allowing the user to override any Ajax options.
+    var xhr = options.xhr = Backbone.ajax(_.extend(params, options));
+    model.trigger('request', model, xhr, options);
+    return xhr;
+  };
+
+  var noXhrPatch =
+    typeof window !== 'undefined' && !!window.ActiveXObject &&
+      !(window.XMLHttpRequest && (new XMLHttpRequest).dispatchEvent);
+
+  // Map from CRUD to HTTP for our default `Backbone.sync` implementation.
+  var methodMap = {
+    'create': 'POST',
+    'update': 'PUT',
+    'patch':  'PATCH',
+    'delete': 'DELETE',
+    'read':   'GET'
+  };
+
+  // Set the default implementation of `Backbone.ajax` to proxy through to `$`.
+  // Override this if you'd like to use a different library.
+  Backbone.ajax = function() {
+    return Backbone.$.ajax.apply(Backbone.$, arguments);
+  };
+
+  // Backbone.Router
+  // ---------------
+
+  // Routers map faux-URLs to actions, and fire events when routes are
+  // matched. Creating a new one sets its `routes` hash, if not set statically.
+  var Router = Backbone.Router = function(options) {
+    options || (options = {});
+    if (options.routes) this.routes = options.routes;
+    this._bindRoutes();
+    this.initialize.apply(this, arguments);
+  };
+
+  // Cached regular expressions for matching named param parts and splatted
+  // parts of route strings.
+  var optionalParam = /\((.*?)\)/g;
+  var namedParam    = /(\(\?)?:\w+/g;
+  var splatParam    = /\*\w+/g;
+  var escapeRegExp  = /[\-{}\[\]+?.,\\\^$|#\s]/g;
+
+  // Set up all inheritable **Backbone.Router** properties and methods.
+  _.extend(Router.prototype, Events, {
+
+    // Initialize is an empty function by default. Override it with your own
+    // initialization logic.
+    initialize: function(){},
+
+    // Manually bind a single named route to a callback. For example:
+    //
+    //     this.route('search/:query/p:num', 'search', function(query, num) {
+    //       ...
+    //     });
+    //
+    route: function(route, name, callback) {
+      if (!_.isRegExp(route)) route = this._routeToRegExp(route);
+      if (_.isFunction(name)) {
+        callback = name;
+        name = '';
+      }
+      if (!callback) callback = this[name];
+      var router = this;
+      Backbone.history.route(route, function(fragment) {
+        var args = router._extractParameters(route, fragment);
+        router.execute(callback, args);
+        router.trigger.apply(router, ['route:' + name].concat(args));
+        router.trigger('route', name, args);
+        Backbone.history.trigger('route', router, name, args);
+      });
+      return this;
+    },
+
+    // Execute a route handler with the provided parameters.  This is an
+    // excellent place to do pre-route setup or post-route cleanup.
+    execute: function(callback, args) {
+      if (callback) callback.apply(this, args);
+    },
+
+    // Simple proxy to `Backbone.history` to save a fragment into the history.
+    navigate: function(fragment, options) {
+      Backbone.history.navigate(fragment, options);
+      return this;
+    },
+
+    // Bind all defined routes to `Backbone.history`. We have to reverse the
+    // order of the routes here to support behavior where the most general
+    // routes can be defined at the bottom of the route map.
+    _bindRoutes: function() {
+      if (!this.routes) return;
+      this.routes = _.result(this, 'routes');
+      var route, routes = _.keys(this.routes);
+      while ((route = routes.pop()) != null) {
+        this.route(route, this.routes[route]);
+      }
+    },
+
+    // Convert a route string into a regular expression, suitable for matching
+    // against the current location hash.
+    _routeToRegExp: function(route) {
+      route = route.replace(escapeRegExp, '\\$&')
+                   .replace(optionalParam, '(?:$1)?')
+                   .replace(namedParam, function(match, optional) {
+                     return optional ? match : '([^/?]+)';
+                   })
+                   .replace(splatParam, '([^?]*?)');
+      return new RegExp('^' + route + '(?:\\?([\\s\\S]*))?$');
+    },
+
+    // Given a route, and a URL fragment that it matches, return the array of
+    // extracted decoded parameters. Empty or unmatched parameters will be
+    // treated as `null` to normalize cross-browser behavior.
+    _extractParameters: function(route, fragment) {
+      var params = route.exec(fragment).slice(1);
+      return _.map(params, function(param, i) {
+        // Don't decode the search params.
+        if (i === params.length - 1) return param || null;
+        return param ? decodeURIComponent(param) : null;
+      });
+    }
+
+  });
+
+  // Backbone.History
+  // ----------------
+
+  // Handles cross-browser history management, based on either
+  // [pushState](http://diveintohtml5.info/history.html) and real URLs, or
+  // [onhashchange](https://developer.mozilla.org/en-US/docs/DOM/window.onhashchange)
+  // and URL fragments. If the browser supports neither (old IE, natch),
+  // falls back to polling.
+  var History = Backbone.History = function() {
+    this.handlers = [];
+    _.bindAll(this, 'checkUrl');
+
+    // Ensure that `History` can be used outside of the browser.
+    if (typeof window !== 'undefined') {
+      this.location = window.location;
+      this.history = window.history;
+    }
+  };
+
+  // Cached regex for stripping a leading hash/slash and trailing space.
+  var routeStripper = /^[#\/]|\s+$/g;
+
+  // Cached regex for stripping leading and trailing slashes.
+  var rootStripper = /^\/+|\/+$/g;
+
+  // Cached regex for detecting MSIE.
+  var isExplorer = /msie [\w.]+/;
+
+  // Cached regex for removing a trailing slash.
+  var trailingSlash = /\/$/;
+
+  // Cached regex for stripping urls of hash.
+  var pathStripper = /#.*$/;
+
+  // Has the history handling already been started?
+  History.started = false;
+
+  // Set up all inheritable **Backbone.History** properties and methods.
+  _.extend(History.prototype, Events, {
+
+    // The default interval to poll for hash changes, if necessary, is
+    // twenty times a second.
+    interval: 50,
+
+    // Are we at the app root?
+    atRoot: function() {
+      return this.location.pathname.replace(/[^\/]$/, '$&/') === this.root;
+    },
+
+    // Gets the true hash value. Cannot use location.hash directly due to bug
+    // in Firefox where location.hash will always be decoded.
+    getHash: function(window) {
+      var match = (window || this).location.href.match(/#(.*)$/);
+      return match ? match[1] : '';
+    },
+
+    // Get the cross-browser normalized URL fragment, either from the URL,
+    // the hash, or the override.
+    getFragment: function(fragment, forcePushState) {
+      if (fragment == null) {
+        if (this._hasPushState || !this._wantsHashChange || forcePushState) {
+          fragment = decodeURI(this.location.pathname + this.location.search);
+          var root = this.root.replace(trailingSlash, '');
+          if (!fragment.indexOf(root)) fragment = fragment.slice(root.length);
+        } else {
+          fragment = this.getHash();
+        }
+      }
+      return fragment.replace(routeStripper, '');
+    },
+
+    // Start the hash change handling, returning `true` if the current URL matches
+    // an existing route, and `false` otherwise.
+    start: function(options) {
+      if (History.started) throw new Error("Backbone.history has already been started");
+      History.started = true;
+
+      // Figure out the initial configuration. Do we need an iframe?
+      // Is pushState desired ... is it available?
+      this.options          = _.extend({root: '/'}, this.options, options);
+      this.root             = this.options.root;
+      this._wantsHashChange = this.options.hashChange !== false;
+      this._wantsPushState  = !!this.options.pushState;
+      this._hasPushState    = !!(this.options.pushState && this.history && this.history.pushState);
+      var fragment          = this.getFragment();
+      var docMode           = document.documentMode;
+      var oldIE             = (isExplorer.exec(navigator.userAgent.toLowerCase()) && (!docMode || docMode <= 7));
+
+      // Normalize root to always include a leading and trailing slash.
+      this.root = ('/' + this.root + '/').replace(rootStripper, '/');
+
+      if (oldIE && this._wantsHashChange) {
+        var frame = Backbone.$('<iframe src="javascript:0" tabindex="-1">');
+        this.iframe = frame.hide().appendTo('body')[0].contentWindow;
+        this.navigate(fragment);
+      }
+
+      // Depending on whether we're using pushState or hashes, and whether
+      // 'onhashchange' is supported, determine how we check the URL state.
+      if (this._hasPushState) {
+        Backbone.$(window).on('popstate', this.checkUrl);
+      } else if (this._wantsHashChange && ('onhashchange' in window) && !oldIE) {
+        Backbone.$(window).on('hashchange', this.checkUrl);
+      } else if (this._wantsHashChange) {
+        this._checkUrlInterval = setInterval(this.checkUrl, this.interval);
+      }
+
+      // Determine if we need to change the base url, for a pushState link
+      // opened by a non-pushState browser.
+      this.fragment = fragment;
+      var loc = this.location;
+
+      // Transition from hashChange to pushState or vice versa if both are
+      // requested.
+      if (this._wantsHashChange && this._wantsPushState) {
+
+        // If we've started off with a route from a `pushState`-enabled
+        // browser, but we're currently in a browser that doesn't support it...
+        if (!this._hasPushState && !this.atRoot()) {
+          this.fragment = this.getFragment(null, true);
+          this.location.replace(this.root + '#' + this.fragment);
+          // Return immediately as browser will do redirect to new url
+          return true;
+
+        // Or if we've started out with a hash-based route, but we're currently
+        // in a browser where it could be `pushState`-based instead...
+        } else if (this._hasPushState && this.atRoot() && loc.hash) {
+          this.fragment = this.getHash().replace(routeStripper, '');
+          this.history.replaceState({}, document.title, this.root + this.fragment);
+        }
+
+      }
+
+      if (!this.options.silent) return this.loadUrl();
+    },
+
+    // Disable Backbone.history, perhaps temporarily. Not useful in a real app,
+    // but possibly useful for unit testing Routers.
+    stop: function() {
+      Backbone.$(window).off('popstate', this.checkUrl).off('hashchange', this.checkUrl);
+      if (this._checkUrlInterval) clearInterval(this._checkUrlInterval);
+      History.started = false;
+    },
+
+    // Add a route to be tested when the fragment changes. Routes added later
+    // may override previous routes.
+    route: function(route, callback) {
+      this.handlers.unshift({route: route, callback: callback});
+    },
+
+    // Checks the current URL to see if it has changed, and if it has,
+    // calls `loadUrl`, normalizing across the hidden iframe.
+    checkUrl: function(e) {
+      var current = this.getFragment();
+      if (current === this.fragment && this.iframe) {
+        current = this.getFragment(this.getHash(this.iframe));
+      }
+      if (current === this.fragment) return false;
+      if (this.iframe) this.navigate(current);
+      this.loadUrl();
+    },
+
+    // Attempt to load the current URL fragment. If a route succeeds with a
+    // match, returns `true`. If no defined routes matches the fragment,
+    // returns `false`.
+    loadUrl: function(fragment) {
+      fragment = this.fragment = this.getFragment(fragment);
+      return _.any(this.handlers, function(handler) {
+        if (handler.route.test(fragment)) {
+          handler.callback(fragment);
+          return true;
+        }
+      });
+    },
+
+    // Save a fragment into the hash history, or replace the URL state if the
+    // 'replace' option is passed. You are responsible for properly URL-encoding
+    // the fragment in advance.
+    //
+    // The options object can contain `trigger: true` if you wish to have the
+    // route callback be fired (not usually desirable), or `replace: true`, if
+    // you wish to modify the current URL without adding an entry to the history.
+    navigate: function(fragment, options) {
+      if (!History.started) return false;
+      if (!options || options === true) options = {trigger: !!options};
+
+      var url = this.root + (fragment = this.getFragment(fragment || ''));
+
+      // Strip the hash for matching.
+      fragment = fragment.replace(pathStripper, '');
+
+      if (this.fragment === fragment) return;
+      this.fragment = fragment;
+
+      // Don't include a trailing slash on the root.
+      if (fragment === '' && url !== '/') url = url.slice(0, -1);
+
+      // If pushState is available, we use it to set the fragment as a real URL.
+      if (this._hasPushState) {
+        this.history[options.replace ? 'replaceState' : 'pushState']({}, document.title, url);
+
+      // If hash changes haven't been explicitly disabled, update the hash
+      // fragment to store history.
+      } else if (this._wantsHashChange) {
+        this._updateHash(this.location, fragment, options.replace);
+        if (this.iframe && (fragment !== this.getFragment(this.getHash(this.iframe)))) {
+          // Opening and closing the iframe tricks IE7 and earlier to push a
+          // history entry on hash-tag change.  When replace is true, we don't
+          // want this.
+          if(!options.replace) this.iframe.document.open().close();
+          this._updateHash(this.iframe.location, fragment, options.replace);
+        }
+
+      // If you've told us that you explicitly don't want fallback hashchange-
+      // based history, then `navigate` becomes a page refresh.
+      } else {
+        return this.location.assign(url);
+      }
+      if (options.trigger) return this.loadUrl(fragment);
+    },
+
+    // Update the hash location, either replacing the current entry, or adding
+    // a new one to the browser history.
+    _updateHash: function(location, fragment, replace) {
+      if (replace) {
+        var href = location.href.replace(/(javascript:|#).*$/, '');
+        location.replace(href + '#' + fragment);
+      } else {
+        // Some browsers require that `hash` contains a leading #.
+        location.hash = '#' + fragment;
+      }
+    }
+
+  });
+
+  // Create the default Backbone.history.
+  Backbone.history = new History;
+
+  // Helpers
+  // -------
+
+  // Helper function to correctly set up the prototype chain, for subclasses.
+  // Similar to `goog.inherits`, but uses a hash of prototype properties and
+  // class properties to be extended.
+  var extend = function(protoProps, staticProps) {
+    var parent = this;
+    var child;
+
+    // The constructor function for the new subclass is either defined by you
+    // (the "constructor" property in your `extend` definition), or defaulted
+    // by us to simply call the parent's constructor.
+    if (protoProps && _.has(protoProps, 'constructor')) {
+      child = protoProps.constructor;
+    } else {
+      child = function(){ return parent.apply(this, arguments); };
+    }
+
+    // Add static properties to the constructor function, if supplied.
+    _.extend(child, parent, staticProps);
+
+    // Set the prototype chain to inherit from `parent`, without calling
+    // `parent`'s constructor function.
+    var Surrogate = function(){ this.constructor = child; };
+    Surrogate.prototype = parent.prototype;
+    child.prototype = new Surrogate;
+
+    // Add prototype properties (instance properties) to the subclass,
+    // if supplied.
+    if (protoProps) _.extend(child.prototype, protoProps);
+
+    // Set a convenience property in case the parent's prototype is needed
+    // later.
+    child.__super__ = parent.prototype;
+
+    return child;
+  };
+
+  // Set up inheritance for the model, collection, router, view and history.
+  Model.extend = Collection.extend = Router.extend = View.extend = History.extend = extend;
+
+  // Throw an error when a URL is needed, and none is supplied.
+  var urlError = function() {
+    throw new Error('A "url" property or function must be specified');
+  };
+
+  // Wrap an optional error callback with a fallback error event.
+  var wrapError = function(model, options) {
+    var error = options.error;
+    options.error = function(resp) {
+      if (error) error(model, resp, options);
+      model.trigger('error', model, resp, options);
+    };
+  };
+
+  return Backbone;
+
+}));
+
+;/*!
+ * Modernizr v2.6.3
+ * www.modernizr.com
+ *
+ * Copyright (c) Faruk Ates, Paul Irish, Alex Sexton
+ * Available under the BSD and MIT licenses: www.modernizr.com/license/
+ */
+
+/*
+ * Modernizr tests which native CSS3 and HTML5 features are available in
+ * the current UA and makes the results available to you in two ways:
+ * as properties on a global Modernizr object, and as classes on the
+ * <html> element. This information allows you to progressively enhance
+ * your pages with a granular level of control over the experience.
+ *
+ * Modernizr has an optional (not included) conditional resource loader
+ * called Modernizr.load(), based on Yepnope.js (yepnopejs.com).
+ * To get a build that includes Modernizr.load(), as well as choosing
+ * which tests to include, go to www.modernizr.com/download/
+ *
+ * Authors        Faruk Ates, Paul Irish, Alex Sexton
+ * Contributors   Ryan Seddon, Ben Alman
+ */
+
+window.Modernizr = (function( window, document, undefined ) {
+
+    var version = '2.6.3',
+
+    Modernizr = {},
+
+    /*>>cssclasses*/
+    // option for enabling the HTML classes to be added
+    enableClasses = true,
+    /*>>cssclasses*/
+
+    docElement = document.documentElement,
+
+    /**
+     * Create our "modernizr" element that we do most feature tests on.
+     */
+    mod = 'modernizr',
+    modElem = document.createElement(mod),
+    mStyle = modElem.style,
+
+    /**
+     * Create the input element for various Web Forms feature tests.
+     */
+    inputElem /*>>inputelem*/ = document.createElement('input') /*>>inputelem*/ ,
+
+    /*>>smile*/
+    smile = ':)',
+    /*>>smile*/
+
+    toString = {}.toString,
+
+    // TODO :: make the prefixes more granular
+    /*>>prefixes*/
+    // List of property values to set for css tests. See ticket #21
+    prefixes = ' -webkit- -moz- -o- -ms- '.split(' '),
+    /*>>prefixes*/
+
+    /*>>domprefixes*/
+    // Following spec is to expose vendor-specific style properties as:
+    //   elem.style.WebkitBorderRadius
+    // and the following would be incorrect:
+    //   elem.style.webkitBorderRadius
+
+    // Webkit ghosts their properties in lowercase but Opera & Moz do not.
+    // Microsoft uses a lowercase `ms` instead of the correct `Ms` in IE8+
+    //   erik.eae.net/archives/2008/03/10/21.48.10/
+
+    // More here: github.com/Modernizr/Modernizr/issues/issue/21
+    omPrefixes = 'Webkit Moz O ms',
+
+    cssomPrefixes = omPrefixes.split(' '),
+
+    domPrefixes = omPrefixes.toLowerCase().split(' '),
+    /*>>domprefixes*/
+
+    /*>>ns*/
+    ns = {'svg': 'http://www.w3.org/2000/svg'},
+    /*>>ns*/
+
+    tests = {},
+    inputs = {},
+    attrs = {},
+
+    classes = [],
+
+    slice = classes.slice,
+
+    featureName, // used in testing loop
+
+
+    /*>>teststyles*/
+    // Inject element with style element and some CSS rules
+    injectElementWithStyles = function( rule, callback, nodes, testnames ) {
+
+      var style, ret, node, docOverflow,
+          div = document.createElement('div'),
+          // After page load injecting a fake body doesn't work so check if body exists
+          body = document.body,
+          // IE6 and 7 won't return offsetWidth or offsetHeight unless it's in the body element, so we fake it.
+          fakeBody = body || document.createElement('body');
+
+      if ( parseInt(nodes, 10) ) {
+          // In order not to give false positives we create a node for each test
+          // This also allows the method to scale for unspecified uses
+          while ( nodes-- ) {
+              node = document.createElement('div');
+              node.id = testnames ? testnames[nodes] : mod + (nodes + 1);
+              div.appendChild(node);
+          }
+      }
+
+      // <style> elements in IE6-9 are considered 'NoScope' elements and therefore will be removed
+      // when injected with innerHTML. To get around this you need to prepend the 'NoScope' element
+      // with a 'scoped' element, in our case the soft-hyphen entity as it won't mess with our measurements.
+      // msdn.microsoft.com/en-us/library/ms533897%28VS.85%29.aspx
+      // Documents served as xml will throw if using &shy; so use xml friendly encoded version. See issue #277
+      style = ['&#173;','<style id="s', mod, '">', rule, '</style>'].join('');
+      div.id = mod;
+      // IE6 will false positive on some tests due to the style element inside the test div somehow interfering offsetHeight, so insert it into body or fakebody.
+      // Opera will act all quirky when injecting elements in documentElement when page is served as xml, needs fakebody too. #270
+      (body ? div : fakeBody).innerHTML += style;
+      fakeBody.appendChild(div);
+      if ( !body ) {
+          //avoid crashing IE8, if background image is used
+          fakeBody.style.background = '';
+          //Safari 5.13/5.1.4 OSX stops loading if ::-webkit-scrollbar is used and scrollbars are visible
+          fakeBody.style.overflow = 'hidden';
+          docOverflow = docElement.style.overflow;
+          docElement.style.overflow = 'hidden';
+          docElement.appendChild(fakeBody);
+      }
+
+      ret = callback(div, rule);
+      // If this is done after page load we don't want to remove the body so check if body exists
+      if ( !body ) {
+          fakeBody.parentNode.removeChild(fakeBody);
+          docElement.style.overflow = docOverflow;
+      } else {
+          div.parentNode.removeChild(div);
+      }
+
+      return !!ret;
+
+    },
+    /*>>teststyles*/
+
+    /*>>mq*/
+    // adapted from matchMedia polyfill
+    // by Scott Jehl and Paul Irish
+    // gist.github.com/786768
+    testMediaQuery = function( mq ) {
+
+      var matchMedia = window.matchMedia || window.msMatchMedia;
+      if ( matchMedia ) {
+        return matchMedia(mq).matches;
+      }
+
+      var bool;
+
+      injectElementWithStyles('@media ' + mq + ' { #' + mod + ' { position: absolute; } }', function( node ) {
+        bool = (window.getComputedStyle ?
+                  getComputedStyle(node, null) :
+                  node.currentStyle)['position'] == 'absolute';
+      });
+
+      return bool;
+
+     },
+     /*>>mq*/
+
+
+    /*>>hasevent*/
+    //
+    // isEventSupported determines if a given element supports the given event
+    // kangax.github.com/iseventsupported/
+    //
+    // The following results are known incorrects:
+    //   Modernizr.hasEvent("webkitTransitionEnd", elem) // false negative
+    //   Modernizr.hasEvent("textInput") // in Webkit. github.com/Modernizr/Modernizr/issues/333
+    //   ...
+    isEventSupported = (function() {
+
+      var TAGNAMES = {
+        'select': 'input', 'change': 'input',
+        'submit': 'form', 'reset': 'form',
+        'error': 'img', 'load': 'img', 'abort': 'img'
+      };
+
+      function isEventSupported( eventName, element ) {
+
+        element = element || document.createElement(TAGNAMES[eventName] || 'div');
+        eventName = 'on' + eventName;
+
+        // When using `setAttribute`, IE skips "unload", WebKit skips "unload" and "resize", whereas `in` "catches" those
+        var isSupported = eventName in element;
+
+        if ( !isSupported ) {
+          // If it has no `setAttribute` (i.e. doesn't implement Node interface), try generic element
+          if ( !element.setAttribute ) {
+            element = document.createElement('div');
+          }
+          if ( element.setAttribute && element.removeAttribute ) {
+            element.setAttribute(eventName, '');
+            isSupported = is(element[eventName], 'function');
+
+            // If property was created, "remove it" (by setting value to `undefined`)
+            if ( !is(element[eventName], 'undefined') ) {
+              element[eventName] = undefined;
+            }
+            element.removeAttribute(eventName);
+          }
+        }
+
+        element = null;
+        return isSupported;
+      }
+      return isEventSupported;
+    })(),
+    /*>>hasevent*/
+
+    // TODO :: Add flag for hasownprop ? didn't last time
+
+    // hasOwnProperty shim by kangax needed for Safari 2.0 support
+    _hasOwnProperty = ({}).hasOwnProperty, hasOwnProp;
+
+    if ( !is(_hasOwnProperty, 'undefined') && !is(_hasOwnProperty.call, 'undefined') ) {
+      hasOwnProp = function (object, property) {
+        return _hasOwnProperty.call(object, property);
+      };
+    }
+    else {
+      hasOwnProp = function (object, property) { /* yes, this can give false positives/negatives, but most of the time we don't care about those */
+        return ((property in object) && is(object.constructor.prototype[property], 'undefined'));
+      };
+    }
+
+    // Adapted from ES5-shim https://github.com/kriskowal/es5-shim/blob/master/es5-shim.js
+    // es5.github.com/#x15.3.4.5
+
+    if (!Function.prototype.bind) {
+      Function.prototype.bind = function bind(that) {
+
+        var target = this;
+
+        if (typeof target != "function") {
+            throw new TypeError();
+        }
+
+        var args = slice.call(arguments, 1),
+            bound = function () {
+
+            if (this instanceof bound) {
+
+              var F = function(){};
+              F.prototype = target.prototype;
+              var self = new F();
+
+              var result = target.apply(
+                  self,
+                  args.concat(slice.call(arguments))
+              );
+              if (Object(result) === result) {
+                  return result;
+              }
+              return self;
+
+            } else {
+
+              return target.apply(
+                  that,
+                  args.concat(slice.call(arguments))
+              );
+
+            }
+
+        };
+
+        return bound;
+      };
+    }
+
+    /**
+     * setCss applies given styles to the Modernizr DOM node.
+     */
+    function setCss( str ) {
+        mStyle.cssText = str;
+    }
+
+    /**
+     * setCssAll extrapolates all vendor-specific css strings.
+     */
+    function setCssAll( str1, str2 ) {
+        return setCss(prefixes.join(str1 + ';') + ( str2 || '' ));
+    }
+
+    /**
+     * is returns a boolean for if typeof obj is exactly type.
+     */
+    function is( obj, type ) {
+        return typeof obj === type;
+    }
+
+    /**
+     * contains returns a boolean for if substr is found within str.
+     */
+    function contains( str, substr ) {
+        return !!~('' + str).indexOf(substr);
+    }
+
+    /*>>testprop*/
+
+    // testProps is a generic CSS / DOM property test.
+
+    // In testing support for a given CSS property, it's legit to test:
+    //    `elem.style[styleName] !== undefined`
+    // If the property is supported it will return an empty string,
+    // if unsupported it will return undefined.
+
+    // We'll take advantage of this quick test and skip setting a style
+    // on our modernizr element, but instead just testing undefined vs
+    // empty string.
+
+    // Because the testing of the CSS property names (with "-", as
+    // opposed to the camelCase DOM properties) is non-portable and
+    // non-standard but works in WebKit and IE (but not Gecko or Opera),
+    // we explicitly reject properties with dashes so that authors
+    // developing in WebKit or IE first don't end up with
+    // browser-specific content by accident.
+
+    function testProps( props, prefixed ) {
+        for ( var i in props ) {
+            var prop = props[i];
+            if ( !contains(prop, "-") && mStyle[prop] !== undefined ) {
+                return prefixed == 'pfx' ? prop : true;
+            }
+        }
+        return false;
+    }
+    /*>>testprop*/
+
+    // TODO :: add testDOMProps
+    /**
+     * testDOMProps is a generic DOM property test; if a browser supports
+     *   a certain property, it won't return undefined for it.
+     */
+    function testDOMProps( props, obj, elem ) {
+        for ( var i in props ) {
+            var item = obj[props[i]];
+            if ( item !== undefined) {
+
+                // return the property name as a string
+                if (elem === false) return props[i];
+
+                // let's bind a function
+                if (is(item, 'function')){
+                  // default to autobind unless override
+                  return item.bind(elem || obj);
+                }
+
+                // return the unbound function or obj or value
+                return item;
+            }
+        }
+        return false;
+    }
+
+    /*>>testallprops*/
+    /**
+     * testPropsAll tests a list of DOM properties we want to check against.
+     *   We specify literally ALL possible (known and/or likely) properties on
+     *   the element including the non-vendor prefixed one, for forward-
+     *   compatibility.
+     */
+    function testPropsAll( prop, prefixed, elem ) {
+
+        var ucProp  = prop.charAt(0).toUpperCase() + prop.slice(1),
+            props   = (prop + ' ' + cssomPrefixes.join(ucProp + ' ') + ucProp).split(' ');
+
+        // did they call .prefixed('boxSizing') or are we just testing a prop?
+        if(is(prefixed, "string") || is(prefixed, "undefined")) {
+          return testProps(props, prefixed);
+
+        // otherwise, they called .prefixed('requestAnimationFrame', window[, elem])
+        } else {
+          props = (prop + ' ' + (domPrefixes).join(ucProp + ' ') + ucProp).split(' ');
+          return testDOMProps(props, prefixed, elem);
+        }
+    }
+    /*>>testallprops*/
+
+
+    /**
+     * Tests
+     * -----
+     */
+
+    // The *new* flexbox
+    // dev.w3.org/csswg/css3-flexbox
+
+    tests['flexbox'] = function() {
+      return testPropsAll('flexWrap');
+    };
+
+    // The *old* flexbox
+    // www.w3.org/TR/2009/WD-css3-flexbox-20090723/
+
+    tests['flexboxlegacy'] = function() {
+        return testPropsAll('boxDirection');
+    };
+
+    // On the S60 and BB Storm, getContext exists, but always returns undefined
+    // so we actually have to call getContext() to verify
+    // github.com/Modernizr/Modernizr/issues/issue/97/
+
+    tests['canvas'] = function() {
+        var elem = document.createElement('canvas');
+        return !!(elem.getContext && elem.getContext('2d'));
+    };
+
+    tests['canvastext'] = function() {
+        return !!(Modernizr['canvas'] && is(document.createElement('canvas').getContext('2d').fillText, 'function'));
+    };
+
+    // webk.it/70117 is tracking a legit WebGL feature detect proposal
+
+    // We do a soft detect which may false positive in order to avoid
+    // an expensive context creation: bugzil.la/732441
+
+    tests['webgl'] = function() {
+        return !!window.WebGLRenderingContext;
+    };
+
+    /*
+     * The Modernizr.touch test only indicates if the browser supports
+     *    touch events, which does not necessarily reflect a touchscreen
+     *    device, as evidenced by tablets running Windows 7 or, alas,
+     *    the Palm Pre / WebOS (touch) phones.
+     *
+     * Additionally, Chrome (desktop) used to lie about its support on this,
+     *    but that has since been rectified: crbug.com/36415
+     *
+     * We also test for Firefox 4 Multitouch Support.
+     *
+     * For more info, see: modernizr.github.com/Modernizr/touch.html
+     */
+
+    tests['touch'] = function() {
+        var bool;
+
+        if(('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch) {
+          bool = true;
+        } else {
+          injectElementWithStyles(['@media (',prefixes.join('touch-enabled),('),mod,')','{#modernizr{top:9px;position:absolute}}'].join(''), function( node ) {
+            bool = node.offsetTop === 9;
+          });
+        }
+
+        return bool;
+    };
+
+
+    // geolocation is often considered a trivial feature detect...
+    // Turns out, it's quite tricky to get right:
+    //
+    // Using !!navigator.geolocation does two things we don't want. It:
+    //   1. Leaks memory in IE9: github.com/Modernizr/Modernizr/issues/513
+    //   2. Disables page caching in WebKit: webk.it/43956
+    //
+    // Meanwhile, in Firefox < 8, an about:config setting could expose
+    // a false positive that would throw an exception: bugzil.la/688158
+
+    tests['geolocation'] = function() {
+        return 'geolocation' in navigator;
+    };
+
+
+    tests['postmessage'] = function() {
+      return !!window.postMessage;
+    };
+
+
+    // Chrome incognito mode used to throw an exception when using openDatabase
+    // It doesn't anymore.
+    tests['websqldatabase'] = function() {
+      return !!window.openDatabase;
+    };
+
+    // Vendors had inconsistent prefixing with the experimental Indexed DB:
+    // - Webkit's implementation is accessible through webkitIndexedDB
+    // - Firefox shipped moz_indexedDB before FF4b9, but since then has been mozIndexedDB
+    // For speed, we don't test the legacy (and beta-only) indexedDB
+    tests['indexedDB'] = function() {
+      return !!testPropsAll("indexedDB", window);
+    };
+
+    // documentMode logic from YUI to filter out IE8 Compat Mode
+    //   which false positives.
+    tests['hashchange'] = function() {
+      return isEventSupported('hashchange', window) && (document.documentMode === undefined || document.documentMode > 7);
+    };
+
+    // Per 1.6:
+    // This used to be Modernizr.historymanagement but the longer
+    // name has been deprecated in favor of a shorter and property-matching one.
+    // The old API is still available in 1.6, but as of 2.0 will throw a warning,
+    // and in the first release thereafter disappear entirely.
+    tests['history'] = function() {
+      return !!(window.history && history.pushState);
+    };
+
+    tests['draganddrop'] = function() {
+        var div = document.createElement('div');
+        return ('draggable' in div) || ('ondragstart' in div && 'ondrop' in div);
+    };
+
+    // FF3.6 was EOL'ed on 4/24/12, but the ESR version of FF10
+    // will be supported until FF19 (2/12/13), at which time, ESR becomes FF17.
+    // FF10 still uses prefixes, so check for it until then.
+    // for more ESR info, see: mozilla.org/en-US/firefox/organizations/faq/
+    tests['websockets'] = function() {
+        return 'WebSocket' in window || 'MozWebSocket' in window;
+    };
+
+
+    // css-tricks.com/rgba-browser-support/
+    tests['rgba'] = function() {
+        // Set an rgba() color and check the returned value
+
+        setCss('background-color:rgba(150,255,150,.5)');
+
+        return contains(mStyle.backgroundColor, 'rgba');
+    };
+
+    tests['hsla'] = function() {
+        // Same as rgba(), in fact, browsers re-map hsla() to rgba() internally,
+        //   except IE9 who retains it as hsla
+
+        setCss('background-color:hsla(120,40%,100%,.5)');
+
+        return contains(mStyle.backgroundColor, 'rgba') || contains(mStyle.backgroundColor, 'hsla');
+    };
+
+    tests['multiplebgs'] = function() {
+        // Setting multiple images AND a color on the background shorthand property
+        //  and then querying the style.background property value for the number of
+        //  occurrences of "url(" is a reliable method for detecting ACTUAL support for this!
+
+        setCss('background:url(https://),url(https://),red url(https://)');
+
+        // If the UA supports multiple backgrounds, there should be three occurrences
+        //   of the string "url(" in the return value for elemStyle.background
+
+        return (/(url\s*\(.*?){3}/).test(mStyle.background);
+    };
+
+
+
+    // this will false positive in Opera Mini
+    //   github.com/Modernizr/Modernizr/issues/396
+
+    tests['backgroundsize'] = function() {
+        return testPropsAll('backgroundSize');
+    };
+
+    tests['borderimage'] = function() {
+        return testPropsAll('borderImage');
+    };
+
+
+    // Super comprehensive table about all the unique implementations of
+    // border-radius: muddledramblings.com/table-of-css3-border-radius-compliance
+
+    tests['borderradius'] = function() {
+        return testPropsAll('borderRadius');
+    };
+
+    // WebOS unfortunately false positives on this test.
+    tests['boxshadow'] = function() {
+        return testPropsAll('boxShadow');
+    };
+
+    // FF3.0 will false positive on this test
+    tests['textshadow'] = function() {
+        return document.createElement('div').style.textShadow === '';
+    };
+
+
+    tests['opacity'] = function() {
+        // Browsers that actually have CSS Opacity implemented have done so
+        //  according to spec, which means their return values are within the
+        //  range of [0.0,1.0] - including the leading zero.
+
+        setCssAll('opacity:.55');
+
+        // The non-literal . in this regex is intentional:
+        //   German Chrome returns this value as 0,55
+        // github.com/Modernizr/Modernizr/issues/#issue/59/comment/516632
+        return (/^0.55$/).test(mStyle.opacity);
+    };
+
+
+    // Note, Android < 4 will pass this test, but can only animate
+    //   a single property at a time
+    //   daneden.me/2011/12/putting-up-with-androids-bullshit/
+    tests['cssanimations'] = function() {
+        return testPropsAll('animationName');
+    };
+
+
+    tests['csscolumns'] = function() {
+        return testPropsAll('columnCount');
+    };
+
+
+    tests['cssgradients'] = function() {
+        /**
+         * For CSS Gradients syntax, please see:
+         * webkit.org/blog/175/introducing-css-gradients/
+         * developer.mozilla.org/en/CSS/-moz-linear-gradient
+         * developer.mozilla.org/en/CSS/-moz-radial-gradient
+         * dev.w3.org/csswg/css3-images/#gradients-
+         */
+
+        var str1 = 'background-image:',
+            str2 = 'gradient(linear,left top,right bottom,from(#9f9),to(white));',
+            str3 = 'linear-gradient(left top,#9f9, white);';
+
+        setCss(
+             // legacy webkit syntax (FIXME: remove when syntax not in use anymore)
+              (str1 + '-webkit- '.split(' ').join(str2 + str1) +
+             // standard syntax             // trailing 'background-image:'
+              prefixes.join(str3 + str1)).slice(0, -str1.length)
+        );
+
+        return contains(mStyle.backgroundImage, 'gradient');
+    };
+
+
+    tests['cssreflections'] = function() {
+        return testPropsAll('boxReflect');
+    };
+
+
+    tests['csstransforms'] = function() {
+        return !!testPropsAll('transform');
+    };
+
+
+    tests['csstransforms3d'] = function() {
+
+        var ret = !!testPropsAll('perspective');
+
+        // Webkit's 3D transforms are passed off to the browser's own graphics renderer.
+        //   It works fine in Safari on Leopard and Snow Leopard, but not in Chrome in
+        //   some conditions. As a result, Webkit typically recognizes the syntax but
+        //   will sometimes throw a false positive, thus we must do a more thorough check:
+        if ( ret && 'webkitPerspective' in docElement.style ) {
+
+          // Webkit allows this media query to succeed only if the feature is enabled.
+          // `@media (transform-3d),(-webkit-transform-3d){ ... }`
+          injectElementWithStyles('@media (transform-3d),(-webkit-transform-3d){#modernizr{left:9px;position:absolute;height:3px;}}', function( node, rule ) {
+            ret = node.offsetLeft === 9 && node.offsetHeight === 3;
+          });
+        }
+        return ret;
+    };
+
+
+    tests['csstransitions'] = function() {
+        return testPropsAll('transition');
+    };
+
+
+    /*>>fontface*/
+    // @font-face detection routine by Diego Perini
+    // javascript.nwbox.com/CSSSupport/
+
+    // false positives:
+    //   WebOS github.com/Modernizr/Modernizr/issues/342
+    //   WP7   github.com/Modernizr/Modernizr/issues/538
+    tests['fontface'] = function() {
+        var bool;
+
+        injectElementWithStyles('@font-face {font-family:"font";src:url("https://")}', function( node, rule ) {
+          var style = document.getElementById('smodernizr'),
+              sheet = style.sheet || style.styleSheet,
+              cssText = sheet ? (sheet.cssRules && sheet.cssRules[0] ? sheet.cssRules[0].cssText : sheet.cssText || '') : '';
+
+          bool = /src/i.test(cssText) && cssText.indexOf(rule.split(' ')[0]) === 0;
+        });
+
+        return bool;
+    };
+    /*>>fontface*/
+
+    // CSS generated content detection
+    tests['generatedcontent'] = function() {
+        var bool;
+
+        injectElementWithStyles(['#',mod,'{font:0/0 a}#',mod,':after{content:"',smile,'";visibility:hidden;font:3px/1 a}'].join(''), function( node ) {
+          bool = node.offsetHeight >= 3;
+        });
+
+        return bool;
+    };
+
+
+
+    // These tests evaluate support of the video/audio elements, as well as
+    // testing what types of content they support.
+    //
+    // We're using the Boolean constructor here, so that we can extend the value
+    // e.g.  Modernizr.video     // true
+    //       Modernizr.video.ogg // 'probably'
+    //
+    // Codec values from : github.com/NielsLeenheer/html5test/blob/9106a8/index.html#L845
+    //                     thx to NielsLeenheer and zcorpan
+
+    // Note: in some older browsers, "no" was a return value instead of empty string.
+    //   It was live in FF3.5.0 and 3.5.1, but fixed in 3.5.2
+    //   It was also live in Safari 4.0.0 - 4.0.4, but fixed in 4.0.5
+
+    tests['video'] = function() {
+        var elem = document.createElement('video'),
+            bool = false;
+
+        // IE9 Running on Windows Server SKU can cause an exception to be thrown, bug #224
+        try {
+            if ( bool = !!elem.canPlayType ) {
+                bool      = new Boolean(bool);
+                bool.ogg  = elem.canPlayType('video/ogg; codecs="theora"')      .replace(/^no$/,'');
+
+                // Without QuickTime, this value will be `undefined`. github.com/Modernizr/Modernizr/issues/546
+                bool.h264 = elem.canPlayType('video/mp4; codecs="avc1.42E01E"') .replace(/^no$/,'');
+
+                bool.webm = elem.canPlayType('video/webm; codecs="vp8, vorbis"').replace(/^no$/,'');
+            }
+
+        } catch(e) { }
+
+        return bool;
+    };
+
+    tests['audio'] = function() {
+        var elem = document.createElement('audio'),
+            bool = false;
+
+        try {
+            if ( bool = !!elem.canPlayType ) {
+                bool      = new Boolean(bool);
+                bool.ogg  = elem.canPlayType('audio/ogg; codecs="vorbis"').replace(/^no$/,'');
+                bool.mp3  = elem.canPlayType('audio/mpeg;')               .replace(/^no$/,'');
+
+                // Mimetypes accepted:
+                //   developer.mozilla.org/En/Media_formats_supported_by_the_audio_and_video_elements
+                //   bit.ly/iphoneoscodecs
+                bool.wav  = elem.canPlayType('audio/wav; codecs="1"')     .replace(/^no$/,'');
+                bool.m4a  = ( elem.canPlayType('audio/x-m4a;')            ||
+                              elem.canPlayType('audio/aac;'))             .replace(/^no$/,'');
+            }
+        } catch(e) { }
+
+        return bool;
+    };
+
+
+    // In FF4, if disabled, window.localStorage should === null.
+
+    // Normally, we could not test that directly and need to do a
+    //   `('localStorage' in window) && ` test first because otherwise Firefox will
+    //   throw bugzil.la/365772 if cookies are disabled
+
+    // Also in iOS5 Private Browsing mode, attempting to use localStorage.setItem
+    // will throw the exception:
+    //   QUOTA_EXCEEDED_ERRROR DOM Exception 22.
+    // Peculiarly, getItem and removeItem calls do not throw.
+
+    // Because we are forced to try/catch this, we'll go aggressive.
+
+    // Just FWIW: IE8 Compat mode supports these features completely:
+    //   www.quirksmode.org/dom/html5.html
+    // But IE8 doesn't support either with local files
+
+    tests['localstorage'] = function() {
+        try {
+            localStorage.setItem(mod, mod);
+            localStorage.removeItem(mod);
+            return true;
+        } catch(e) {
+            return false;
+        }
+    };
+
+    tests['sessionstorage'] = function() {
+        try {
+            sessionStorage.setItem(mod, mod);
+            sessionStorage.removeItem(mod);
+            return true;
+        } catch(e) {
+            return false;
+        }
+    };
+
+
+    tests['webworkers'] = function() {
+        return !!window.Worker;
+    };
+
+
+    tests['applicationcache'] = function() {
+        return !!window.applicationCache;
+    };
+
+
+    // Thanks to Erik Dahlstrom
+    tests['svg'] = function() {
+        return !!document.createElementNS && !!document.createElementNS(ns.svg, 'svg').createSVGRect;
+    };
+
+    // specifically for SVG inline in HTML, not within XHTML
+    // test page: paulirish.com/demo/inline-svg
+    tests['inlinesvg'] = function() {
+      var div = document.createElement('div');
+      div.innerHTML = '<svg/>';
+      return (div.firstChild && div.firstChild.namespaceURI) == ns.svg;
+    };
+
+    // SVG SMIL animation
+    tests['smil'] = function() {
+        return !!document.createElementNS && /SVGAnimate/.test(toString.call(document.createElementNS(ns.svg, 'animate')));
+    };
+
+    // This test is only for clip paths in SVG proper, not clip paths on HTML content
+    // demo: srufaculty.sru.edu/david.dailey/svg/newstuff/clipPath4.svg
+
+    // However read the comments to dig into applying SVG clippaths to HTML content here:
+    //   github.com/Modernizr/Modernizr/issues/213#issuecomment-1149491
+    tests['svgclippaths'] = function() {
+        return !!document.createElementNS && /SVGClipPath/.test(toString.call(document.createElementNS(ns.svg, 'clipPath')));
+    };
+
+    /*>>webforms*/
+    // input features and input types go directly onto the ret object, bypassing the tests loop.
+    // Hold this guy to execute in a moment.
+    function webforms() {
+        /*>>input*/
+        // Run through HTML5's new input attributes to see if the UA understands any.
+        // We're using f which is the <input> element created early on
+        // Mike Taylr has created a comprehensive resource for testing these attributes
+        //   when applied to all input types:
+        //   miketaylr.com/code/input-type-attr.html
+        // spec: www.whatwg.org/specs/web-apps/current-work/multipage/the-input-element.html#input-type-attr-summary
+
+        // Only input placeholder is tested while textarea's placeholder is not.
+        // Currently Safari 4 and Opera 11 have support only for the input placeholder
+        // Both tests are available in feature-detects/forms-placeholder.js
+        Modernizr['input'] = (function( props ) {
+            for ( var i = 0, len = props.length; i < len; i++ ) {
+                attrs[ props[i] ] = !!(props[i] in inputElem);
+            }
+            if (attrs.list){
+              // safari false positive's on datalist: webk.it/74252
+              // see also github.com/Modernizr/Modernizr/issues/146
+              attrs.list = !!(document.createElement('datalist') && window.HTMLDataListElement);
+            }
+            return attrs;
+        })('autocomplete autofocus list placeholder max min multiple pattern required step'.split(' '));
+        /*>>input*/
+
+        /*>>inputtypes*/
+        // Run through HTML5's new input types to see if the UA understands any.
+        //   This is put behind the tests runloop because it doesn't return a
+        //   true/false like all the other tests; instead, it returns an object
+        //   containing each input type with its corresponding true/false value
+
+        // Big thanks to @miketaylr for the html5 forms expertise. miketaylr.com/
+        Modernizr['inputtypes'] = (function(props) {
+
+            for ( var i = 0, bool, inputElemType, defaultView, len = props.length; i < len; i++ ) {
+
+                inputElem.setAttribute('type', inputElemType = props[i]);
+                bool = inputElem.type !== 'text';
+
+                // We first check to see if the type we give it sticks..
+                // If the type does, we feed it a textual value, which shouldn't be valid.
+                // If the value doesn't stick, we know there's input sanitization which infers a custom UI
+                if ( bool ) {
+
+                    inputElem.value         = smile;
+                    inputElem.style.cssText = 'position:absolute;visibility:hidden;';
+
+                    if ( /^range$/.test(inputElemType) && inputElem.style.WebkitAppearance !== undefined ) {
+
+                      docElement.appendChild(inputElem);
+                      defaultView = document.defaultView;
+
+                      // Safari 2-4 allows the smiley as a value, despite making a slider
+                      bool =  defaultView.getComputedStyle &&
+                              defaultView.getComputedStyle(inputElem, null).WebkitAppearance !== 'textfield' &&
+                              // Mobile android web browser has false positive, so must
+                              // check the height to see if the widget is actually there.
+                              (inputElem.offsetHeight !== 0);
+
+                      docElement.removeChild(inputElem);
+
+                    } else if ( /^(search|tel)$/.test(inputElemType) ){
+                      // Spec doesn't define any special parsing or detectable UI
+                      //   behaviors so we pass these through as true
+
+                      // Interestingly, opera fails the earlier test, so it doesn't
+                      //  even make it here.
+
+                    } else if ( /^(url|email)$/.test(inputElemType) ) {
+                      // Real url and email support comes with prebaked validation.
+                      bool = inputElem.checkValidity && inputElem.checkValidity() === false;
+
+                    } else {
+                      // If the upgraded input compontent rejects the :) text, we got a winner
+                      bool = inputElem.value != smile;
+                    }
+                }
+
+                inputs[ props[i] ] = !!bool;
+            }
+            return inputs;
+        })('search tel url email datetime date month week time datetime-local number range color'.split(' '));
+        /*>>inputtypes*/
+    }
+    /*>>webforms*/
+
+
+    // End of test definitions
+    // -----------------------
+
+
+
+    // Run through all tests and detect their support in the current UA.
+    // todo: hypothetically we could be doing an array of tests and use a basic loop here.
+    for ( var feature in tests ) {
+        if ( hasOwnProp(tests, feature) ) {
+            // run the test, throw the return value into the Modernizr,
+            //   then based on that boolean, define an appropriate className
+            //   and push it into an array of classes we'll join later.
+            featureName  = feature.toLowerCase();
+            Modernizr[featureName] = tests[feature]();
+
+            classes.push((Modernizr[featureName] ? '' : 'no-') + featureName);
+        }
+    }
+
+    /*>>webforms*/
+    // input tests need to run.
+    Modernizr.input || webforms();
+    /*>>webforms*/
+
+
+    /**
+     * addTest allows the user to define their own feature tests
+     * the result will be added onto the Modernizr object,
+     * as well as an appropriate className set on the html element
+     *
+     * @param feature - String naming the feature
+     * @param test - Function returning true if feature is supported, false if not
+     */
+     Modernizr.addTest = function ( feature, test ) {
+       if ( typeof feature == 'object' ) {
+         for ( var key in feature ) {
+           if ( hasOwnProp( feature, key ) ) {
+             Modernizr.addTest( key, feature[ key ] );
+           }
+         }
+       } else {
+
+         feature = feature.toLowerCase();
+
+         if ( Modernizr[feature] !== undefined ) {
+           // we're going to quit if you're trying to overwrite an existing test
+           // if we were to allow it, we'd do this:
+           //   var re = new RegExp("\\b(no-)?" + feature + "\\b");
+           //   docElement.className = docElement.className.replace( re, '' );
+           // but, no rly, stuff 'em.
+           return Modernizr;
+         }
+
+         test = typeof test == 'function' ? test() : test;
+
+         if (typeof enableClasses !== "undefined" && enableClasses) {
+           docElement.className += ' ' + (test ? '' : 'no-') + feature;
+         }
+         Modernizr[feature] = test;
+
+       }
+
+       return Modernizr; // allow chaining.
+     };
+
+
+    // Reset modElem.cssText to nothing to reduce memory footprint.
+    setCss('');
+    modElem = inputElem = null;
+
+    /*>>shiv*/
+    /*! HTML5 Shiv v3.6.1 | @afarkas @jdalton @jon_neal @rem | MIT/GPL2 Licensed */
+    ;(function(window, document) {
+    /*jshint evil:true */
+      /** Preset options */
+      var options = window.html5 || {};
+
+      /** Used to skip problem elements */
+      var reSkip = /^<|^(?:button|map|select|textarea|object|iframe|option|optgroup)$/i;
+
+      /** Not all elements can be cloned in IE **/
+      var saveClones = /^(?:a|b|code|div|fieldset|h1|h2|h3|h4|h5|h6|i|label|li|ol|p|q|span|strong|style|table|tbody|td|th|tr|ul)$/i;
+
+      /** Detect whether the browser supports default html5 styles */
+      var supportsHtml5Styles;
+
+      /** Name of the expando, to work with multiple documents or to re-shiv one document */
+      var expando = '_html5shiv';
+
+      /** The id for the the documents expando */
+      var expanID = 0;
+
+      /** Cached data for each document */
+      var expandoData = {};
+
+      /** Detect whether the browser supports unknown elements */
+      var supportsUnknownElements;
+
+      (function() {
+        try {
+            var a = document.createElement('a');
+            a.innerHTML = '<xyz></xyz>';
+            //if the hidden property is implemented we can assume, that the browser supports basic HTML5 Styles
+            supportsHtml5Styles = ('hidden' in a);
+
+            supportsUnknownElements = a.childNodes.length == 1 || (function() {
+              // assign a false positive if unable to shiv
+              (document.createElement)('a');
+              var frag = document.createDocumentFragment();
+              return (
+                typeof frag.cloneNode == 'undefined' ||
+                typeof frag.createDocumentFragment == 'undefined' ||
+                typeof frag.createElement == 'undefined'
+              );
+            }());
+        } catch(e) {
+          supportsHtml5Styles = true;
+          supportsUnknownElements = true;
+        }
+
+      }());
+
+      /*--------------------------------------------------------------------------*/
+
+      /**
+       * Creates a style sheet with the given CSS text and adds it to the document.
+       * @private
+       * @param {Document} ownerDocument The document.
+       * @param {String} cssText The CSS text.
+       * @returns {StyleSheet} The style element.
+       */
+      function addStyleSheet(ownerDocument, cssText) {
+        var p = ownerDocument.createElement('p'),
+            parent = ownerDocument.getElementsByTagName('head')[0] || ownerDocument.documentElement;
+
+        p.innerHTML = 'x<style>' + cssText + '</style>';
+        return parent.insertBefore(p.lastChild, parent.firstChild);
+      }
+
+      /**
+       * Returns the value of `html5.elements` as an array.
+       * @private
+       * @returns {Array} An array of shived element node names.
+       */
+      function getElements() {
+        var elements = html5.elements;
+        return typeof elements == 'string' ? elements.split(' ') : elements;
+      }
+
+        /**
+       * Returns the data associated to the given document
+       * @private
+       * @param {Document} ownerDocument The document.
+       * @returns {Object} An object of data.
+       */
+      function getExpandoData(ownerDocument) {
+        var data = expandoData[ownerDocument[expando]];
+        if (!data) {
+            data = {};
+            expanID++;
+            ownerDocument[expando] = expanID;
+            expandoData[expanID] = data;
+        }
+        return data;
+      }
+
+      /**
+       * returns a shived element for the given nodeName and document
+       * @memberOf html5
+       * @param {String} nodeName name of the element
+       * @param {Document} ownerDocument The context document.
+       * @returns {Object} The shived element.
+       */
+      function createElement(nodeName, ownerDocument, data){
+        if (!ownerDocument) {
+            ownerDocument = document;
+        }
+        if(supportsUnknownElements){
+            return ownerDocument.createElement(nodeName);
+        }
+        if (!data) {
+            data = getExpandoData(ownerDocument);
+        }
+        var node;
+
+        if (data.cache[nodeName]) {
+            node = data.cache[nodeName].cloneNode();
+        } else if (saveClones.test(nodeName)) {
+            node = (data.cache[nodeName] = data.createElem(nodeName)).cloneNode();
+        } else {
+            node = data.createElem(nodeName);
+        }
+
+        // Avoid adding some elements to fragments in IE < 9 because
+        // * Attributes like `name` or `type` cannot be set/changed once an element
+        //   is inserted into a document/fragment
+        // * Link elements with `src` attributes that are inaccessible, as with
+        //   a 403 response, will cause the tab/window to crash
+        // * Script elements appended to fragments will execute when their `src`
+        //   or `text` property is set
+        return node.canHaveChildren && !reSkip.test(nodeName) ? data.frag.appendChild(node) : node;
+      }
+
+      /**
+       * returns a shived DocumentFragment for the given document
+       * @memberOf html5
+       * @param {Document} ownerDocument The context document.
+       * @returns {Object} The shived DocumentFragment.
+       */
+      function createDocumentFragment(ownerDocument, data){
+        if (!ownerDocument) {
+            ownerDocument = document;
+        }
+        if(supportsUnknownElements){
+            return ownerDocument.createDocumentFragment();
+        }
+        data = data || getExpandoData(ownerDocument);
+        var clone = data.frag.cloneNode(),
+            i = 0,
+            elems = getElements(),
+            l = elems.length;
+        for(;i<l;i++){
+            clone.createElement(elems[i]);
+        }
+        return clone;
+      }
+
+      /**
+       * Shivs the `createElement` and `createDocumentFragment` methods of the document.
+       * @private
+       * @param {Document|DocumentFragment} ownerDocument The document.
+       * @param {Object} data of the document.
+       */
+      function shivMethods(ownerDocument, data) {
+        if (!data.cache) {
+            data.cache = {};
+            data.createElem = ownerDocument.createElement;
+            data.createFrag = ownerDocument.createDocumentFragment;
+            data.frag = data.createFrag();
+        }
+
+
+        ownerDocument.createElement = function(nodeName) {
+          //abort shiv
+          if (!html5.shivMethods) {
+              return data.createElem(nodeName);
+          }
+          return createElement(nodeName, ownerDocument, data);
+        };
+
+        ownerDocument.createDocumentFragment = Function('h,f', 'return function(){' +
+          'var n=f.cloneNode(),c=n.createElement;' +
+          'h.shivMethods&&(' +
+            // unroll the `createElement` calls
+            getElements().join().replace(/\w+/g, function(nodeName) {
+              data.createElem(nodeName);
+              data.frag.createElement(nodeName);
+              return 'c("' + nodeName + '")';
+            }) +
+          ');return n}'
+        )(html5, data.frag);
+      }
+
+      /*--------------------------------------------------------------------------*/
+
+      /**
+       * Shivs the given document.
+       * @memberOf html5
+       * @param {Document} ownerDocument The document to shiv.
+       * @returns {Document} The shived document.
+       */
+      function shivDocument(ownerDocument) {
+        if (!ownerDocument) {
+            ownerDocument = document;
+        }
+        var data = getExpandoData(ownerDocument);
+
+        if (html5.shivCSS && !supportsHtml5Styles && !data.hasCSS) {
+          data.hasCSS = !!addStyleSheet(ownerDocument,
+            // corrects block display not defined in IE6/7/8/9
+            'article,aside,figcaption,figure,footer,header,hgroup,nav,section{display:block}' +
+            // adds styling not present in IE6/7/8/9
+            'mark{background:#FF0;color:#000}'
+          );
+        }
+        if (!supportsUnknownElements) {
+          shivMethods(ownerDocument, data);
+        }
+        return ownerDocument;
+      }
+
+      /*--------------------------------------------------------------------------*/
+
+      /**
+       * The `html5` object is exposed so that more elements can be shived and
+       * existing shiving can be detected on iframes.
+       * @type Object
+       * @example
+       *
+       * // options can be changed before the script is included
+       * html5 = { 'elements': 'mark section', 'shivCSS': false, 'shivMethods': false };
+       */
+      var html5 = {
+
+        /**
+         * An array or space separated string of node names of the elements to shiv.
+         * @memberOf html5
+         * @type Array|String
+         */
+        'elements': options.elements || 'abbr article aside audio bdi canvas data datalist details figcaption figure footer header hgroup mark meter nav output progress section summary time video',
+
+        /**
+         * A flag to indicate that the HTML5 style sheet should be inserted.
+         * @memberOf html5
+         * @type Boolean
+         */
+        'shivCSS': (options.shivCSS !== false),
+
+        /**
+         * Is equal to true if a browser supports creating unknown/HTML5 elements
+         * @memberOf html5
+         * @type boolean
+         */
+        'supportsUnknownElements': supportsUnknownElements,
+
+        /**
+         * A flag to indicate that the document's `createElement` and `createDocumentFragment`
+         * methods should be overwritten.
+         * @memberOf html5
+         * @type Boolean
+         */
+        'shivMethods': (options.shivMethods !== false),
+
+        /**
+         * A string to describe the type of `html5` object ("default" or "default print").
+         * @memberOf html5
+         * @type String
+         */
+        'type': 'default',
+
+        // shivs the document according to the specified `html5` object options
+        'shivDocument': shivDocument,
+
+        //creates a shived element
+        createElement: createElement,
+
+        //creates a shived documentFragment
+        createDocumentFragment: createDocumentFragment
+      };
+
+      /*--------------------------------------------------------------------------*/
+
+      // expose html5
+      window.html5 = html5;
+
+      // shiv the document
+      shivDocument(document);
+
+    }(this, document));
+    /*>>shiv*/
+
+    // Assign private properties to the return object with prefix
+    Modernizr._version      = version;
+
+    // expose these for the plugin API. Look in the source for how to join() them against your input
+    /*>>prefixes*/
+    Modernizr._prefixes     = prefixes;
+    /*>>prefixes*/
+    /*>>domprefixes*/
+    Modernizr._domPrefixes  = domPrefixes;
+    Modernizr._cssomPrefixes  = cssomPrefixes;
+    /*>>domprefixes*/
+
+    /*>>mq*/
+    // Modernizr.mq tests a given media query, live against the current state of the window
+    // A few important notes:
+    //   * If a browser does not support media queries at all (eg. oldIE) the mq() will always return false
+    //   * A max-width or orientation query will be evaluated against the current state, which may change later.
+    //   * You must specify values. Eg. If you are testing support for the min-width media query use:
+    //       Modernizr.mq('(min-width:0)')
+    // usage:
+    // Modernizr.mq('only screen and (max-width:768)')
+    Modernizr.mq            = testMediaQuery;
+    /*>>mq*/
+
+    /*>>hasevent*/
+    // Modernizr.hasEvent() detects support for a given event, with an optional element to test on
+    // Modernizr.hasEvent('gesturestart', elem)
+    Modernizr.hasEvent      = isEventSupported;
+    /*>>hasevent*/
+
+    /*>>testprop*/
+    // Modernizr.testProp() investigates whether a given style property is recognized
+    // Note that the property names must be provided in the camelCase variant.
+    // Modernizr.testProp('pointerEvents')
+    Modernizr.testProp      = function(prop){
+        return testProps([prop]);
+    };
+    /*>>testprop*/
+
+    /*>>testallprops*/
+    // Modernizr.testAllProps() investigates whether a given style property,
+    //   or any of its vendor-prefixed variants, is recognized
+    // Note that the property names must be provided in the camelCase variant.
+    // Modernizr.testAllProps('boxSizing')
+    Modernizr.testAllProps  = testPropsAll;
+    /*>>testallprops*/
+
+
+    /*>>teststyles*/
+    // Modernizr.testStyles() allows you to add custom styles to the document and test an element afterwards
+    // Modernizr.testStyles('#modernizr { position:absolute }', function(elem, rule){ ... })
+    Modernizr.testStyles    = injectElementWithStyles;
+    /*>>teststyles*/
+
+
+    /*>>prefixed*/
+    // Modernizr.prefixed() returns the prefixed or nonprefixed property name variant of your input
+    // Modernizr.prefixed('boxSizing') // 'MozBoxSizing'
+
+    // Properties must be passed as dom-style camelcase, rather than `box-sizing` hypentated style.
+    // Return values will also be the camelCase variant, if you need to translate that to hypenated style use:
+    //
+    //     str.replace(/([A-Z])/g, function(str,m1){ return '-' + m1.toLowerCase(); }).replace(/^ms-/,'-ms-');
+
+    // If you're trying to ascertain which transition end event to bind to, you might do something like...
+    //
+    //     var transEndEventNames = {
+    //       'WebkitTransition' : 'webkitTransitionEnd',
+    //       'MozTransition'    : 'transitionend',
+    //       'OTransition'      : 'oTransitionEnd',
+    //       'msTransition'     : 'MSTransitionEnd',
+    //       'transition'       : 'transitionend'
+    //     },
+    //     transEndEventName = transEndEventNames[ Modernizr.prefixed('transition') ];
+
+    Modernizr.prefixed      = function(prop, obj, elem){
+      if(!obj) {
+        return testPropsAll(prop, 'pfx');
+      } else {
+        // Testing DOM property e.g. Modernizr.prefixed('requestAnimationFrame', window) // 'mozRequestAnimationFrame'
+        return testPropsAll(prop, obj, elem);
+      }
+    };
+    /*>>prefixed*/
+
+
+    /*>>cssclasses*/
+    // Remove "no-js" class from <html> element, if it exists:
+    docElement.className = docElement.className.replace(/(^|\s)no-js(\s|$)/, '$1$2') +
+
+                            // Add the new classes to the <html> element.
+                            (enableClasses ? ' js ' + classes.join(' ') : '');
+    /*>>cssclasses*/
+
+    return Modernizr;
+
+})(this, this.document);
+
 ;(function(global) {
   "use strict";
 
@@ -14703,6 +14703,80 @@ if ( typeof module === "object" && module && typeof module.exports === "object" 
 })(this);
 
 ;(function(){var a,b,c,d,e,f,g,h,i,j,k,l;$(function(){return $("body").on("click",".checklist:not([readonly]) li:not([readonly])",function(){return"true"===$(this).attr("aria-checked")||"true"===$(this).attr("data-checked")||"checked"===$(this).attr("checked")||$(this).hasClass("checked")||$(this).hasClass("completed")?$(this).attr("aria-checked","false"):$(this).attr("aria-checked","true"),$(this).removeClass("checked completed").removeAttr("data-checked checked")})}),$(function(){return $("body").on("click",".dismissible",function(){var a=this;return $(this).addClass("dismiss animated"),setTimeout(function(){return $(a).hide(250,function(){return $(this).remove()})},1e3)})}),$(window).on("load resize",function(){return h()}),h=function(){return $(".row.equalize").each(function(){var a,b,c;return a=$(this),c=0,b=!1,a.children().each(function(){var d;return d=$(this),d.css("minHeight","1px"),b=d.outerWidth()===a.outerWidth(),!b&&(d.hasClass("equal")||d.addClass("equal"),d.outerHeight()>c)?c=d.outerHeight():void 0}),b?void 0:a.children().css("min-height",c)})},$(function(){var a,b;return a=$("body"),b=[".error input",".error textarea",".invalid input",".invalid textarea","input.error","textarea.error","input.invalid","textarea.invalid",'input[aria-invalid="true"]','textarea[aria-invalid="true"]'].join(","),a.on("click",b,function(){return $(this).focus(),$(this).select()})}),$(function(){var a;return a=$("body"),$(".dropdown").each(function(){return"true"!==$(this).attr("aria-pressed")?($(this).attr("aria-pressed","false"),$(this).children("ul").attr({"aria-expanded":"false","aria-hidden":"true",role:"menu"})):void 0}),a.on("dropdown",function(a){var b,c;return b=$(a.target),$(".dropdown").not(b).attr("aria-pressed","false"),$(".dropdown").children("ul").attr({"aria-expanded":"false","aria-hidden":"true"}),c="true"===b.attr("aria-pressed")?"false":"true",b.attr("aria-pressed",c),b.children("ul").attr({"aria-expanded":!c,"aria-hidden":c})}),a.on("click",".dropdown",function(a){var b;return b=$(a.currentTarget),b.is("a")||b.is("button")||a.stopPropagation(),b.hasClass("focused")?b.removeClass("focused"):b.trigger("dropdown")}),a.on("click",function(){var a;return a=$('.dropdown[aria-pressed="true"]'),a.length?a.attr("aria-pressed","false"):void 0}),a.on("focusout",".dropdown li:last-child a,                        .dropdown li:last-child button",function(){return $('.dropdown[aria-pressed="true"]').attr("aria-pressed","false")})}),i=0,window.delayMenuClose="",window.delayNavigationClose="",a=function(){function a(a){this.index=i++,this.el=$(a),this.init()}return a.prototype.init=function(){return this.defaultLabel(),this.setupMarkers(),this.el.hasClass("nocollapse")?void 0:this.hamburgerHelper()},a.prototype.defaultLabel=function(){return this.el.hasClass("nocollapse")||void 0!==this.el.attr("title")?void 0:this.el.attr("title","Menu")},a.prototype.setupMarkers=function(){return this.el.find("ul").each(function(){return $(this).find("li").length?$(this).attr("role","menu"):void 0}),$(this.el).hasClass("vertical")||this.el.find("> ul").attr("role","menubar"),this.el.find("li").each(function(){return $(this).find("ul").length?$(this).attr("role","menu"):void 0})},a.prototype.hamburgerHelper=function(){return this.el.prepend('<button class="hamburger"></button>')},a}(),$(function(){var b,c,d;return b=function(){return $("body").on("mouseenter",'.nav:not(.vertical) li[role="menu"]',function(a){var b,c;return $(".nav:not(.vertical)").not(this).each(function(){return $(this).find("button.hamburger").is(":visible")?void 0:$(this).find('ul[aria-expanded="true"]').attr("aria-expanded","false")}),$(this).parents(".nav").find("button.hamburger").is(":visible")?void 0:(clearTimeout(window.delayMenuClose),b=$(this).siblings().find('ul[aria-expanded="true"]'),b.attr("aria-expanded","false"),c=$(a.target).parents('li[role="menu"]').children("ul"),c.attr("aria-expanded","true"))}),$("body").on("mouseleave",'.nav:not(.vertical) li[role="menu"]',function(){var a=this;return $(this).parents(".nav").find("button.hamburger").is(":visible")?void 0:window.delayMenuClose=setTimeout(function(){return $(a).find('ul[aria-expanded="true"]').attr("aria-expanded","false")},500)})},d=function(){return $("body").on("click",'.nav li[role="menu"] > a,                           .nav li[role="menu"] > button',function(a){var b,c;return b=$(this).siblings("ul"),c=$(this).parent('[role="menu"]'),"true"!==b.attr("aria-expanded")?b.attr("aria-expanded","true"):(b.attr("aria-expanded","false"),b.find('[aria-expanded="true"]').attr("aria-expanded","false")),"true"!==c.attr("aria-pressed")?c.attr("aria-pressed","true"):(c.attr("aria-pressed","false"),c.find('[aria-pressed="true"]').attr("aria-pressed","false"),c.find('[aria-expanded="true"]').attr("aria-expanded","false")),a.preventDefault()}),$("body").on("click",".nav button.hamburger",function(a){var b;return b=$(this).siblings("ul"),"true"!==b.attr("aria-expanded")?b.attr("aria-expanded","true"):(b.attr("aria-expanded","false"),b.find('[aria-pressed="true"]').attr("aria-pressed","false"),b.find('[aria-expanded="true"]').attr("aria-expanded","false")),a.preventDefault()})},c=[],$(".nav").each(function(){return c.push(new a(this))}),d(),Modernizr.touch?void 0:b()}),$(function(){var a,b,c,d;return $(".tabs").each(function(){var a,b;return a=$(this).children("ul").children("li.active"),a.length?(b=a.parents(".tabs"),b.find(a.attr("aria-controls")).addClass("active")):($(this).children("ul").children("li").first().addClass("active"),$(this).children("div").first().addClass("active"))}),$("body").on("click",".tabs > ul li",function(a){var b,c;return b=$(this).addClass("active"),c=b.parents(".tabs"),b.siblings("li").removeClass("active"),c.find("> div, > ul > div").hide(),c.find(b.attr("aria-controls")).show(),a.preventDefault()}),d=function(){var a,d,e,f,g,h,i,j,k;return k=$(window).width(),a=".tabs.accordion",e=".tabs.accordion.mobile",j=".tabs.accordion.small-tablet",d=".tabs.accordion.ipad",f=".tabs:not(.accordion)",h=":not(.mobile)",i=":not(.small-tablet)",g=":not(.ipad)",480>=k?(c(e),b(f+h)):768>k?(c(e+", "+j),b(f+h+i)):1024>=k?(c(e+", "+j+", "+d),b(f+h+i+g)):k>1024?c(a):void 0},b=function(a){return a=$(a),a.each(function(){var a;return a=$(this),a.addClass("accordion"),a.find("> div").each(function(){var b,c;return c=$(this).clone(),b='li[aria-controls="#'+c.attr("id")+'"]',a.find(b).after(c),$(this).remove()})})},c=function(b){return $(b).each(function(){var b;return b=$(this),b.removeClass("accordion"),b.hasClass("vertical")&&a(b),b.children("ul").children("div").each(function(){var a;return a=$(this).clone(),b.append(a),$(this).remove()})})},a=function(a){return a=$(a),a.length||(a=$(".tabs.vertical")),a.each(function(){return $(this).hasClass("vertical")&&($(this).children("ul").css({"min-height":"0px"}),!$(this).hasClass("accordion"))?($(this).children('[role="tabpanel"]').css({"padding-left":$(this).children("ul").width()+10+"px"}),$(this).children("ul").css({"min-height":$(this).height()+"px"})):void 0})},$(window).resize(function(){return clearTimeout(window.delayedAdjustTabs),window.delayedAdjustTabs=setTimeout(function(){return d(),a()},50)}),$(window).load(function(){return d(),a()})}),function(a){return a.fn.placeholderText=function(b){var c,d,e;return a.fn.placeholderText.defaults={type:"paragraphs",amount:"1",html:!0,punctuation:!0},d=a.extend({},a.fn.placeholderText.defaults,b),e=new Array(10),e[0]="Nam quis nulla. Integer malesuada. In in enim a arcu imperdiet malesuada. Sed vel lectus. Donec odio urna, tempus molestie, porttitor ut, iaculis quis, sem. Phasellus rhoncus. Aenean id metus id velit ullamcorper pulvinar. Vestibulum fermentum tortor id mi. Pellentesque ipsum. Nulla non arcu lacinia neque faucibus fringilla. Nulla non lectus sed nisl molestie malesuada. Proin in tellus sit amet nibh dignissim sagittis. Vivamus luctus egestas leo. Maecenas sollicitudin. Nullam rhoncus aliquam metus. Etiam egestas wisi a erat.",e[1]="Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Nullam feugiat, turpis at pulvinar vulputate, erat libero tristique tellus, nec bibendum odio risus sit amet ante. Aliquam erat volutpat. Nunc auctor. Mauris pretium quam et urna. Fusce nibh. Duis risus. Curabitur sagittis hendrerit ante. Aliquam erat volutpat. Vestibulum erat nulla, ullamcorper nec, rutrum non, nonummy ac, erat. Duis condimentum augue id magna semper rutrum. Nullam justo enim, consectetuer nec, ullamcorper ac, vestibulum in, elit. Proin pede metus, vulputate nec, fermentum fringilla, vehicula vitae, justo. Fusce consectetuer risus a nunc. Aliquam ornare wisi eu metus. Integer pellentesque quam vel velit. Duis pulvinar.",e[2]="Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Morbi gravida libero nec velit. Morbi scelerisque luctus velit. Etiam dui sem, fermentum vitae, sagittis id, malesuada in, quam. Proin mattis lacinia justo. Vestibulum facilisis auctor urna. Aliquam in lorem sit amet leo accumsan lacinia. Integer rutrum, orci vestibulum ullamcorper ultricies, lacus quam ultricies odio, vitae placerat pede sem sit amet enim. Phasellus et lorem id felis nonummy placerat. Fusce dui leo, imperdiet in, aliquam sit amet, feugiat eu, orci. Aenean vel massa quis mauris vehicula lacinia. Quisque tincidunt scelerisque libero. Maecenas libero. Etiam dictum tincidunt diam. Donec ipsum massa, ullamcorper in, auctor et, scelerisque sed, est. Suspendisse nisl. Sed convallis magna eu sem. Cras pede libero, dapibus nec, pretium sit amet, tempor quis, urna.",e[3]="Etiam posuere quam ac quam. Maecenas aliquet accumsan leo. Nullam dapibus fermentum ipsum. Etiam quis quam. Integer lacinia. Nulla est. Nulla turpis magna, cursus sit amet, suscipit a, interdum id, felis. Integer vulputate sem a nibh rutrum consequat. Maecenas lorem. Pellentesque pretium lectus id turpis. Etiam sapien elit, consequat eget, tristique non, venenatis quis, ante. Fusce wisi. Phasellus faucibus molestie nisl. Fusce eget urna. Curabitur vitae diam non enim vestibulum interdum. Nulla quis diam. Ut tempus purus at lorem.",e[4]="In sem justo, commodo ut, suscipit at, pharetra vitae, orci. Duis sapien nunc, commodo et, interdum suscipit, sollicitudin et, dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aliquam id dolor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos hymenaeos. Mauris dictum facilisis augue. Fusce tellus. Pellentesque arcu. Maecenas fermentum, sem in pharetra pellentesque, velit turpis volutpat ante, in pharetra metus odio a lectus. Sed elit dui, pellentesque a, faucibus vel, interdum nec, diam. Mauris dolor felis, sagittis at, luctus sed, aliquam non, tellus. Etiam ligula pede, sagittis quis, interdum ultricies, scelerisque eu, urna. Nullam at arcu a est sollicitudin euismod. Praesent dapibus. Duis bibendum, lectus ut viverra rhoncus, dolor nunc faucibus libero, eget facilisis enim ipsum id lacus. Nam sed tellus id magna elementum tincidunt.",e[5]="Morbi a metus. Phasellus enim erat, vestibulum vel, aliquam a, posuere eu, velit. Nullam sapien sem, ornare ac, nonummy non, lobortis a, enim. Nunc tincidunt ante vitae massa. Duis ante orci, molestie vitae, vehicula venenatis, tincidunt ac, pede. Nulla accumsan, elit sit amet varius semper, nulla mauris mollis quam, tempor suscipit diam nulla vel leo. Etiam commodo dui eget wisi. Donec iaculis gravida nulla. Donec quis nibh at felis congue commodo. Etiam bibendum elit eget erat.",e[6]="Praesent in mauris eu tortor porttitor accumsan. Mauris suscipit, ligula sit amet pharetra semper, nibh ante cursus purus, vel sagittis velit mauris vel metus. Aenean fermentum risus id tortor. Integer imperdiet lectus quis justo. Integer tempor. Vivamus ac urna vel leo pretium faucibus. Mauris elementum mauris vitae tortor. In dapibus augue non sapien. Aliquam ante. Curabitur bibendum justo non orci.",e[7]="Morbi leo mi, nonummy eget, tristique non, rhoncus non, leo. Nullam faucibus mi quis velit. Integer in sapien. Fusce tellus odio, dapibus id, fermentum quis, suscipit id, erat. Fusce aliquam vestibulum ipsum. Aliquam erat volutpat. Pellentesque sapien. Cras elementum. Nulla pulvinar eleifend sem. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Quisque porta. Vivamus porttitor turpis ac leo.",e[8]="Maecenas ipsum velit, consectetuer eu, lobortis ut, dictum at, dui. In rutrum. Sed ac dolor sit amet purus malesuada congue. In laoreet, magna id viverra tincidunt, sem odio bibendum justo, vel imperdiet sapien wisi sed libero. Suspendisse sagittis ultrices augue. Mauris metus. Nunc dapibus tortor vel mi dapibus sollicitudin. Etiam posuere lacus quis dolor. Praesent id justo in neque elementum ultrices. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos hymenaeos. In convallis. Fusce suscipit libero eget elit. Praesent vitae arcu tempor neque lacinia pretium. Morbi imperdiet, mauris ac auctor dictum, nisl ligula egestas nulla, et sollicitudin sem purus in lacus.",e[9]="Aenean placerat. In vulputate urna eu arcu. Aliquam erat volutpat. Suspendisse potenti. Morbi mattis felis at nunc. Duis viverra diam non justo. In nisl. Nullam sit amet magna in magna gravida vehicula. Mauris tincidunt sem sed arcu. Nunc posuere. Nullam lectus justo, vulputate eget, mollis sed, tempor sed, magna. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Etiam neque. Curabitur ligula sapien, pulvinar a, vestibulum quis, facilisis vel, sapien. Nullam eget nisl. Donec vitae arcu.",c=function(c){var f,g,h,i,j,k,l,m,n,o,p,q;for(b={},"undefined"!==a(c).data("placeholderType")&&(b.type=a(c).data("placeholderType")),"undefined"!==a(c).data("placeholderAmount")&&(b.amount=a(c).data("placeholderAmount")),"undefined"!==a(c).data("placeholderHtml")&&(b.html=a(c).data("placeholderHtml")),"undefined"!==a(c).data("placeholderPunctuation")&&(b.punctuation=a(c).data("placeholderPunctuation")),d=a.extend({},a.fn.placeholderText.defaults,b),f=d.amount,n="",g=0;f>g;)o=Math.floor(10*Math.random()),d.html&&(n+="<p>"),n+=e[o],d.html&&(n+="</p>"),n+="\n\n",g++;switch(d.type){case"words":for(l=d.amount,l=parseInt(l),j=new Array,q=new Array,q=n.split(" "),h=0,i=0;j.length<l;)i>q.length&&(i=0,h++,h+1>e.length&&(h=0),q=e[h].split(" "),q[0]="\n\n"+q[0]),j.push(q[i]),i++;n=j.join(" ");break;case"characters":for(m="",k=d.amount,k=parseInt(k),p=e.join("\n\n");m.length<k;)m+=p;n=m.substring(0,k);break;case"paragraphs":}return d.punctuation||(n=n.replace(",","").replace(".","")),n},this.each(function(){var b,d;return b=a(this),d=c(this),b.html(d)})}}(jQuery),$(function(){return $(".placeholderText").placeholderText()}),e=[],j=0,b=function(){function a(a){this.index=j++,this.el=a,this.compression=$(this.el).data("compression")||5,this.minFontSize=$(this.el).data("min")||10,this.maxFontSize=$(this.el).data("max")||Number.POSITIVE_INFINITY,this.width=$(this.el).data("width")||"100%",this.height=$(this.el).data("height")||"auto",this.adjustParents=$(this.el).data("adjust-parents")||!0,this.styled=$(this.el).data("styled")||!0,this.columns=$("tbody tr",$(this.el)).first().find("th, td").length,this.rows=$("tbody tr",$(this.el)).length,this.init()}return a.prototype.init=function(){return this.setupTable(),this.adjustOnLoad(),this.adjustOnResize()},a.prototype.fontSize=function(){var a;return a="auto"===this.height?$("tbody td",$(this.el)).first().width()/this.compression:$(this.el).height()/this.rows/this.compression,Math.min(this.maxFontSize,Math.max(a,this.minFontSize))},a.prototype.setupTable=function(){return $(this.el).css("width",this.width),"auto"!==this.height&&$(this.el).css("height",this.height),$("th, td",$(this.el)).css("width",100/this.columns+"%"),this.styled&&$(this.el).addClass("responsiveTable"),"auto"!==this.height&&($("th, td",$(this.el)).css("height",100/this.rows+"%"),this.adjustParents&&$(this.el).parents().each(function(){return $(this).css("height","100%")})),$(this.el).css("font-size",this.fontSize())},a.prototype.resizeTable=function(){return $(this.el).css("font-size",this.minFontSize).css("font-size",this.fontSize())},a.prototype.adjustOnLoad=function(){var a=this;return $(window).on("load",function(){return a.resizeTable()})},a.prototype.adjustOnResize=function(){var a=this;return $(window).on("resize",function(){return clearTimeout(e[a.index]),e[a.index]=setTimeout(function(){return a.resizeTable()},20)})},a}(),function(a){var c;return c=[],a.fn.responsiveTables=function(){return this.each(function(){return c.push(new b(this))})}}(jQuery),$(document).ready(function(){return $("table.responsive").responsiveTables()}),f=[],k=0,c=function(){function a(a){this.index=k++,this.el=a,this.compression=$(this.el).data("compression")||10,this.minFontSize=$(this.el).data("min")||Number.NEGATIVE_INFINITY,this.maxFontSize=$(this.el).data("max")||Number.POSITIVE_INFINITY,this.scrollable=$(this.el).data("scrollable")||!1,this.scrollSpeed=$(this.el).data("scrollspeed")||650,this.scrollReset=$(this.el).data("scrollreset")||200,this.init()}return a.prototype.init=function(){return $(this.el).wrapInner('<span class="responsiveText-wrapper" />'),this.adjustOnLoad(),this.adjustOnResize(),this.scrollable?this.scrollOnHover():void 0},a.prototype.resizeText=function(){var a,b;return a=$(this.el).width()/this.compression,b=Math.max(Math.min(a,this.maxFontSize),this.minFontSize),$(this.el).css({"font-size":Math.floor(b)})},a.prototype.adjustOnLoad=function(){var a=this;return $(window).on("load",function(){return a.resizeText()})},a.prototype.adjustOnResize=function(){var a=this;return $(window).on("resize",function(){return clearTimeout(f[a.index]),f[a.index]=setTimeout(function(){return a.resizeText()},20)})},a.prototype.scrollOnHover=function(){var a=this;return $(this.el).css({overflow:"hidden","text-overflow":"ellipsis","white-space":"nowrap"}),$(this.el).hover(function(){return a.difference=a.el.scrollWidth-$(a.el).width(),a.difference>a.scrollSpeed&&(a.scrollSpeed=a.difference),a.difference>0?($(a.el).css("cursor","e-resize"),$(a.el).stop().animate({"text-indent":-a.difference},a.scrollSpeed,function(){return $(a.el).css("cursor","text")})):void 0},function(){return $(a.el).stop().animate({"text-indent":0},a.scrollReset)})},a}(),function(a){var b;return b=[],a.fn.responsiveText=function(){return this.each(function(){return b.push(new c(this))})}}(jQuery),$(document).ready(function(){return $(".responsive").not("table").responsiveText()}),g=[],l=0,d=function(){function a(a){this.el=a,this.index=l++,this.text=$(this.el).text(),$(this.el).attr("data-text",this.text),this.words=this.text.trim().split(" "),this.lines=parseInt($(this.el).attr("data-truncate")),this.truncate(),this.adjustOnResize()}return a.prototype.truncate=function(){return this.measure(),this.setContent()},a.prototype.reset=function(){return $(this.el).text(this.text).css("max-height","none").attr("data-truncated","false")},a.prototype.measure=function(){var a;for(this.reset(),$(this.el).html("."),this.singleLineHeight=$(this.el).outerHeight(),a=1;a++<this.lines;)$(this.el).append("<br>.");return this.maxLinesHeight=$(this.el).outerHeight()},a.prototype.empty=function(){return $(this.el).html("")},a.prototype.setContent=function(){var a;return this.reset(),a=!1,this.addWords(this.words.length),this.tooBig()?(this.addNumberWordsThatFit(),$(this.el).css("max-height",this.maxLinesHeight+"px"),$(this.el).attr("data-truncated",!0)):void 0},a.prototype.addNumberWordsThatFit=function(){var a,b,c;for(b=this.words.length,a=0,c=Math.floor(this.words.length/2);a+1!==b;)this.addWords(a+c),this.tooBig()?b=a+c:a+=c,c=Math.floor(c/2)||1;return this.addWords(a),$(this.el).html(this.trimTrailingPunctuation($(this.el).html()))},a.prototype.addWords=function(a){return $(this.el).html(this.words.slice(0,a).join(" "))},a.prototype.tooBig=function(){return $(this.el).outerHeight()>this.maxLinesHeight},a.prototype.adjustOnResize=function(){var a=this;return $(window).on("resize",function(){return clearTimeout(g[a.index]),g[a.index]=setTimeout(function(){return a.truncate()},20)})},a.prototype.trimTrailingPunctuation=function(a){return a.replace(/(,$)|(\.$)|(\:$)|(\;$)|(\?$)|(\!$)/g,"")},a}(),function(a){var b,c;return b=!1,c=[],a.fn.truncateLines=function(){return b||a("head").append('<style type="text/css">  [data-truncated="true"] { overflow: hidden; }  [data-truncated="true"]:after { content: "..."; position: absolute; }</style>'),this.each(function(){return c.push(new d(this))})}}(jQuery),$(window).load(function(){return $("[data-truncate]").truncateLines()})}).call(this);
+;/* 
+  A drop-in read-only Google-Spreadsheets-backed replacement for Backbone.sync
+
+  Tabletop must be successfully initialized prior to using fetch()
+
+  Backbone.tabletopSync only supports the 'read' method, and will fail
+    loudly on any other operations
+*/
+
+Backbone.tabletopSync = function(method, model, options, error) {
+  // Backwards compatibility with Backbone <= 0.3.3
+  if (typeof options == 'function') {
+    options = {
+      success: options,
+      error: error
+    };
+  }
+  
+  var resp;
+
+  var tabletopOptions = model.tabletop || model.collection.tabletop;
+
+  var instance = tabletopOptions.instance;
+
+  if(typeof(instance) == "undefined") {
+    instance = Tabletop.init( { key: tabletopOptions.key,
+                                wanted: [ tabletopOptions.sheet ],
+                                wait: true } )
+    tabletopOptions.instance = instance;
+  } else {
+    instance.addWanted(tabletopOptions.sheet);
+  }
+  
+  if(typeof(tabletopOptions.sheet) == "undefined") {
+    return;
+  }
+  
+  var sheet = instance.sheets( tabletopOptions.sheet );
+
+  if(typeof(sheet) === "undefined") {
+    // Hasn't been fetched yet, let's fetch!
+    
+    // Let's make sure we aren't re-requesting a sheet that doesn't exist
+    if(typeof(instance.foundSheetNames) !== 'undefined' && _.indexOf(instance.foundSheetNames, tabletopOptions.sheet) === -1) {
+      throw("Can't seem to find sheet " + tabletopOptions.sheet);
+    }
+
+    instance.fetch( function() {
+      Backbone.tabletopSync(method, model, options, error);
+    })
+    return;
+  }
+  
+  switch (method) {
+    case "read":
+      if(model.id) {
+        resp = _.find( sheet.all(), function(item) {
+          return model.id == item[model.idAttribute];
+        }, this);
+      } else {
+        resp = sheet.all();
+      }
+      break;
+    default:
+      throw("Backbone.tabletopSync is read-only");
+  }
+
+  if (resp) {
+    options.success(resp);
+  } else {
+    options.error("Record not found");
+  }
+
+};
 ;/**
  * |-------------------|
  * | Backbone-Mediator |
@@ -14952,80 +15026,6 @@ if ( typeof module === "object" && module && typeof module.exports === "object" 
 	return Backbone;
 });
 
-;/* 
-  A drop-in read-only Google-Spreadsheets-backed replacement for Backbone.sync
-
-  Tabletop must be successfully initialized prior to using fetch()
-
-  Backbone.tabletopSync only supports the 'read' method, and will fail
-    loudly on any other operations
-*/
-
-Backbone.tabletopSync = function(method, model, options, error) {
-  // Backwards compatibility with Backbone <= 0.3.3
-  if (typeof options == 'function') {
-    options = {
-      success: options,
-      error: error
-    };
-  }
-  
-  var resp;
-
-  var tabletopOptions = model.tabletop || model.collection.tabletop;
-
-  var instance = tabletopOptions.instance;
-
-  if(typeof(instance) == "undefined") {
-    instance = Tabletop.init( { key: tabletopOptions.key,
-                                wanted: [ tabletopOptions.sheet ],
-                                wait: true } )
-    tabletopOptions.instance = instance;
-  } else {
-    instance.addWanted(tabletopOptions.sheet);
-  }
-  
-  if(typeof(tabletopOptions.sheet) == "undefined") {
-    return;
-  }
-  
-  var sheet = instance.sheets( tabletopOptions.sheet );
-
-  if(typeof(sheet) === "undefined") {
-    // Hasn't been fetched yet, let's fetch!
-    
-    // Let's make sure we aren't re-requesting a sheet that doesn't exist
-    if(typeof(instance.foundSheetNames) !== 'undefined' && _.indexOf(instance.foundSheetNames, tabletopOptions.sheet) === -1) {
-      throw("Can't seem to find sheet " + tabletopOptions.sheet);
-    }
-
-    instance.fetch( function() {
-      Backbone.tabletopSync(method, model, options, error);
-    })
-    return;
-  }
-  
-  switch (method) {
-    case "read":
-      if(model.id) {
-        resp = _.find( sheet.all(), function(item) {
-          return model.id == item[model.idAttribute];
-        }, this);
-      } else {
-        resp = sheet.all();
-      }
-      break;
-    default:
-      throw("Backbone.tabletopSync is read-only");
-  }
-
-  if (resp) {
-    options.success(resp);
-  } else {
-    options.error("Record not found");
-  }
-
-};
 ;//     Backbone.js 0.9.2
 
 //     (c) 2010-2012 Jeremy Ashkenas, DocumentCloud Inc.

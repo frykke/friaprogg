@@ -1,0 +1,20 @@
+<!--
+	Author: 
+	Date: 
+
+	Description: Template Description
+-->
+<div class='row'>
+	<div class='box orange' id="content">
+	  <div id="name">{{content}}</div>
+	</div>
+</div>
+<div class='row' id='pictures-list'>
+	{{#each images}}
+		<div class="one fourth three-up-small-tablet two-up-mobile padded align-center">
+		{{#if image}}
+			<img src="{{image}}" alt="{{text}}" />
+		{{/if}}
+	    </div>
+	{{/each}}
+</div>

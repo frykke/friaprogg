@@ -17,6 +17,10 @@ $ ->
 	# Start Backbone router
 	Backbone.history.start()
 
+	# goto home page
+	application.navigate("home", {trigger: true});
+        
+
 _compareHelper = (lvalue, operator, rvalue, options) ->  
 
 	if (arguments.length < 3) 
@@ -47,8 +51,4 @@ _compareHelper = (lvalue, operator, rvalue, options) ->
 	else
 		return options.inverse(this)
 
-console.log 'Handlebars'
-console.log Handlebars
-console.log _compareHelper
 Handlebars.registerHelper('compare',_compareHelper)
-console.log Handlebars

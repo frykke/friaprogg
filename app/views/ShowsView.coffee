@@ -9,7 +9,6 @@
 
 View = require('./supers/View')
 ShowsModel = require('../models/ShowsModel')
-DocModel = require('../models/DocModel')
 template = require('./templates/ShowsTemplate')
 
 module.exports = class ShowsView extends View

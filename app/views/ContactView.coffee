@@ -8,9 +8,10 @@
  ###
 
 View = require('./supers/View')
-template = require('./templates/ShowsTemplate')
+ContactModel = require('../models/ContactModel')
+template = require('./templates/ContactTemplate')
 
-module.exports = class ShowsView extends View
+module.exports = class ContactView extends View
 
 	###//--------------------------------------
 	//+ PUBLIC PROPERTIES / CONSTANTS
@@ -19,7 +20,7 @@ module.exports = class ShowsView extends View
   	#
    	# @private
 	#
-	id: 'shows-view'
+	id: 'contact-view'
 	#
    	# @private
 	#
@@ -34,7 +35,8 @@ module.exports = class ShowsView extends View
 	#
 	initialize: ->
 		@render = _.bind( @render, @ )
-
+		@model = new ContactModel()
+		@model.on('change', @newData);
 	#
    	# @private
 	#
@@ -46,11 +48,17 @@ module.exports = class ShowsView extends View
 	#
    	# @private
 	#
-	getRenderData: ->
-		return {
-			content: "Kontakt...."
-		}
-
+	newData: () =>
+		console.log 'new Data'
+		console.log @model
+		@render()
+	#
+   	# @private
+	#
+	getRenderData: =>
+		console.log '@model.toJSON()'
+		console.log @model.toJSON()
+		return @model.toJSON()
 	###//--------------------------------------
 	//+ PUBLIC METHODS / GETTERS / SETTERS
 	//--------------------------------------###
